@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tesserae-dl"  # the import name is `tess_dl`
-version = "0.1.0"
+version = "0.1.1"
 description = "TDL, the Tesserae Data Language: a lossless parser for the files the Tesserae Shell reads."
 readme = "README.md"
 license = "MIT"

@@ -5,8 +5,8 @@ Shell reads: blocks, properties and values. `tess_dl` is the Python library that
 that keeps everything in the file (comments, layout, positions), reports every mistake with
 `file:line:column`, and writes the text back unchanged except for an edit you ask for.
 
-> **Status:** alpha, package 0.1.0 on PyPI, language version 0.1. The import name changes from
-> `tdl` to `tess_dl` in the next release (see [`CHANGELOG.md`](CHANGELOG.md)). The API may change
+> **Status:** alpha, package 0.1.1, language version 0.1. The import name changed from
+> `tdl` to `tess_dl` in 0.1.1 (see [`CHANGELOG.md`](CHANGELOG.md)). The API may change
 > before 1.0 (a minor version may break it; see [`docs/versioning.md`](docs/versioning.md)).
 > The language is in [`docs/language.md`](docs/language.md), the API in [`docs/api.md`](docs/api.md),
 > the reasons for the choices in [`docs/decisions.md`](docs/decisions.md).
