@@ -45,10 +45,12 @@ jobs:
           uv venv --python 3.14 /tmp/smoke
           uv pip install --python /tmp/smoke/bin/python dist/*.whl
           cd /tmp && /tmp/smoke/bin/python -I -c "
-          import sys, tdl
+          import sys
+          before = set(sys.modules)
+          import tdl
+          new = {m.split('.')[0] for m in set(sys.modules) - before}
+          assert not new - set(sys.stdlib_module_names) - {'tdl'}, new
           print(tdl.__version__, tdl.LANGUAGE_VERSION)
-          own = set(sys.stdlib_module_names) | {'tdl', '__main__'}
-          assert not {m.split('.')[0] for m in sys.modules} - own
           "
       - uses: actions/upload-artifact@v7
         with:

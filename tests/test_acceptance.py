@@ -63,11 +63,15 @@ def test_width_without_a_colon_points_at_the_first_character_that_does_not_fit()
 
 
 def test_importing_tdl_loads_only_the_standard_library():
-    """Run in a clean interpreter: no third-party package, and none of TEL, tre or the shell."""
+    """Run in a clean interpreter: no third-party package, and none of TEL, tre or the shell.
+
+    Only what `import tdl` adds is counted: a runner may pre-load modules of its own at start-up
+    (a `sitecustomize`), and those are not the library's.
+    """
     code = (
-        "import sys; import tdl; "
-        "own = set(sys.stdlib_module_names) | {'tdl', '__main__'}; "
-        "print(sorted({m.split('.')[0] for m in sys.modules} - own))"
+        "import sys; before = set(sys.modules); import tdl; "
+        "own = set(sys.stdlib_module_names) | {'tdl'}; "
+        "print(sorted({m.split('.')[0] for m in set(sys.modules) - before} - own))"
     )
     done = subprocess.run(
         [sys.executable, "-I", "-c", code], capture_output=True, text=True, check=True
