@@ -1,2 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
 # graphify knowledge-graph output (built by `graphify update .`; local cache and paths)
 graphify-out/

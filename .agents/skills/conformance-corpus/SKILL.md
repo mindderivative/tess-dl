@@ -22,7 +22,7 @@ Each case is as small as it can be and shows **one** thing. Lines and columns ar
 
 One parametrised pytest module walks the folder, so a new case needs no test code:
 
-- `ok`: `loads` succeeds; `canonical()` equals the expectation; `dumps(loads(x)) == x` byte for byte (every `ok` case is a round-trip case).
+- `ok`: `loads` succeeds and `canonical()` equals the expectation (step 3, `test_ok_case_reads_to_the_canonical_tree`); `dumps(loads(x)) == x` byte for byte and `dumps(load(BytesIO(data))) == x` (step 5, `test_ok_case_round_trips_byte_for_byte`). Every `ok` case is a round-trip case. See G26.
 - `errors`: `loads` raises `TDLSyntaxError` with the first listed code, line and column; `parse` returns the whole list (up to 50), in source order.
 - `edits`: three files per case (G23): `<case>.tdl`, `<case>.expect.json` with `{"edit": {"call": "with_metadata|without_metadata|with_property|replace", ...}}` (a refused edit adds `"raises": "<code>"` and has no result file) and `<case>.result.tdl`, the expected output bytes. The edit changes no other byte (`lossless-roundtrip`).
 - A `.tdl` with no `.expect.json`, or the reverse, fails the run.

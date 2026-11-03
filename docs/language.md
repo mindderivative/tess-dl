@@ -2,7 +2,7 @@
 
 TDL is a structure-only data language: blocks, properties and values. It does not know what a bar, a monitor or a colour is. The program that reads a file (the Tesserae Shell, Tesserae UI) decides which blocks and keys it accepts and what a value means. Expressions belong to TEL: TDL only marks where one starts and ends.
 
-This page is the reference for what the `tdl` library reads. Each section shows an example first, then the rule. Where TDL behaves differently from CSS, QML or Flutter, a note says so. The reasons for the choices are in [decisions.md](decisions.md) (rows G1 to G25).
+This page is the reference for what the `tdl` library reads. Each section shows an example first, then the rule. Where TDL behaves differently from CSS, QML or Flutter, a note says so. The reasons for the choices are in [decisions.md](decisions.md) (rows G1 to G27).
 
 Status: draft for the first slice. Every example here becomes a case in `tests/corpus/`.
 
@@ -108,7 +108,7 @@ Border {
 - `Children` and `Import` are ordinary words: `Children` is a block, `Import: File.tdl` is a property. Their meaning is the shell's. (G9)
 - Nested blocks close with a space or a newline between the braces: `} }`, never `}}`. An adjacent `}}` outside a slot or a string is `tdl-double-close`, whether or not two blocks are open. A block directly inside a block opens as `{ {` for the same reason: `{{` always opens a slot.
 - A `{` with no `}` before the end of the file is `tdl-unclosed-block`; a `}` with nothing open is `tdl-unexpected-close`.
-- Nesting is limited to 64 levels (the root block is level 1; blocks, `If`/`For` bodies and lists each count). (G11)
+- Nesting is limited to 64 levels (the root block is level 1; blocks, `If`/`For` bodies, lists and calls each count). (G11, G27)
 
 ## The root block
 
@@ -260,7 +260,7 @@ Four more codes report what the library will not read at all. Each stops the fil
 | Code | When | Hint |
 |---|---|---|
 | `tdl-too-large` | The text is longer than 1 MiB (checked before any parsing) | Split the file |
-| `tdl-too-deep` | Blocks, bodies and lists nest deeper than 64 levels | Flatten the nesting |
+| `tdl-too-deep` | Blocks, bodies, lists and calls nest deeper than 64 levels | Flatten the nesting |
 | `tdl-unsupported-version` | The `TDL:` version is newer than this library's | Use a newer `tdl` |
 | `tdl-bad-encoding` | The bytes are not valid UTF-8 (`load` only; the message gives the byte offset) | Save the file as UTF-8 |
 
