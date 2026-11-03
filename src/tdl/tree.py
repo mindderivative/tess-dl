@@ -182,6 +182,21 @@ class Block(_Node):
                         return None
         return None
 
+    def with_property(self, key: str, value: str) -> Document:
+        """A new document with the property `key` set to `value`, the TDL text of one value.
+
+        An existing property changes only its value. A new one is added on a line after the last
+        property, with that property's indentation and line ending (or inline, in a block written
+        on one line). Raises `ValueError` for a block built in code, a key that is not a name or
+        is reserved, or a value that is not exactly one value on one line, and `TDLError` if the
+        result would not be a valid file.
+        """
+        from . import _edit
+        from ._parser import loads
+
+        text, path = _edit.with_property(self, key, value)
+        return loads(text, path=path)
+
     def canonical(self) -> Data:
         return {"block": self.type, "entries": _canonical_entries(self.entries)}
 
@@ -270,3 +285,64 @@ class Document:
             "metadata": {key: value.canonical() for key, value in self.metadata.items()},
             "root": self.root.canonical(),
         }
+
+    def find(self, path: str) -> Block:
+        """The block at a dotted path of `Name:` values, such as `"Shell_Root.Main.Top_Bar"`.
+
+        The first name is the file's own `Name` (it stands for the root block); each next one is
+        the `Name:` of a block directly inside the one before. Raises `KeyError` if there is none.
+        """
+        first, *rest = path.split(".")
+        name = self.metadata.get("Name")
+        found = self.root if name is not None and _value_text(name) == first else None
+        for part in rest:
+            if found is None:
+                break
+            found = next(
+                (e for e in found.entries if isinstance(e, Block) and e.name == part), None
+            )
+        if found is None:
+            raise KeyError(path)
+        return found
+
+    def with_metadata(self, key: str, value: str) -> Document:
+        """A new document with the metadata `key` set to `value` and no other byte changed.
+
+        An existing key changes only its value. A new `UID` goes directly after the last version
+        line (`TDL` or `Shell`); any other new key goes just before the closing `---`.
+        `value` is plain text: it is written as a bare word when it reads back the same, else
+        as a quoted string. Raises `ValueError` for a key that is not a name and `TDLError` if
+        the result would not be a valid file.
+        """
+        from . import _edit
+
+        return self._reread(_edit.with_metadata(self, key, value))
+
+    def without_metadata(self, key: str) -> Document:
+        """A new document without the metadata `key` (its whole line); unchanged if it is absent.
+
+        Removing `TDL` or `Name` raises `TDLError`: the file would no longer be valid.
+        """
+        from . import _edit
+
+        text = _edit.without_metadata(self, key)
+        return self if text == self.text else self._reread(text)
+
+    def replace(self, start: int, end: int, text: str) -> Document:
+        """A new document with `self.text[start:end]` replaced by `text` (character offsets).
+
+        The escape hatch: raises `ValueError` for a span outside the text and `TDLError` if the
+        result would not be a valid file.
+        """
+        from . import _edit
+
+        return self._reread(_edit.replace(self, start, end, text))
+
+    def _reread(self, text: str) -> Document:
+        from ._parser import loads
+
+        return loads(text, path=self.path)
+
+
+def _value_text(value: Word | String) -> str:
+    return value.text if isinstance(value, Word) else value.value
