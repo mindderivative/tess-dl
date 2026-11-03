@@ -68,36 +68,58 @@ def test_ok_case_round_trips_byte_for_byte(area, case, path):
     assert tdl.dumps(tdl.load(io.BytesIO(data))) == text
 
 
-@pytest.mark.parametrize(("area", "case", "path"), ERRORS, ids=ids(ERRORS))
-def test_error_case_reports_the_listed_errors(area, case, path):
+def wanted(path):
+    return json.loads(path.read_text("utf-8"))["errors"]
+
+
+def first(error):
+    return (error.code, error.origin.line, error.origin.column)
+
+
+TEXT_ERRORS = [r for r in ERRORS if r[1] != "bad-encoding"]
+
+
+@pytest.mark.parametrize(("area", "case", "path"), TEXT_ERRORS, ids=ids(TEXT_ERRORS))
+def test_error_case_loads_raises_the_first_listed_error(area, case, path):
+    """Step 4: `loads` stops at the first mistake with its code, position and related origins."""
     import tdl
 
-    data = read(path)
-    expected = json.loads(path.read_text("utf-8"))["errors"]
-    wanted = [(e["code"], e["line"], e["column"]) for e in expected]
-    wanted_related = [[(r["line"], r["column"]) for r in e.get("related", [])] for e in expected]
-
-    # `load` reads bytes, `loads` reads text; both must raise the first error.
-    # `bad-encoding` has no text form, so only `load` applies.
+    expected = wanted(path)[0]
     with pytest.raises(tdl.TDLSyntaxError) as raised:
-        tdl.load(io.BytesIO(data))
-    first = raised.value
-    assert (first.code, first.origin.line, first.origin.column) == wanted[0]
-    assert related(first) == wanted_related[0]
-    if case == "bad-encoding":
-        return
+        tdl.loads(read(path).decode("utf-8"), path=f"{area}/{case}.tdl")
+    error = raised.value
+    assert first(error) == (expected["code"], expected["line"], expected["column"])
+    assert related(error) == [(r["line"], r["column"]) for r in expected.get("related", [])]
+    assert error.message and error.hint
+    assert str(error) == (
+        f"{area}/{case}.tdl:{error.origin.line}:{error.origin.column}: "
+        f"{error.message} ({error.hint})"
+    )
 
-    text = data.decode("utf-8")
-    with pytest.raises(tdl.TDLSyntaxError) as raised_text:
-        tdl.loads(text)
-    assert (
-        raised_text.value.code,
-        raised_text.value.origin.line,
-        raised_text.value.origin.column,
-    ) == wanted[0]
-    result = tdl.parse(text)
-    assert triples(result.errors) == wanted
-    assert [related(e) for e in result.errors] == wanted_related
+
+@pytest.mark.parametrize(("area", "case", "path"), ERRORS, ids=ids(ERRORS))
+def test_error_case_load_raises_the_same_first_error(area, case, path):
+    """Step 5: `load` reads bytes, so it also covers `bad-encoding`."""
+    import tdl
+
+    expected = wanted(path)[0]
+    with pytest.raises(tdl.TDLSyntaxError) as raised:
+        tdl.load(io.BytesIO(read(path)))
+    assert first(raised.value) == (expected["code"], expected["line"], expected["column"])
+    assert related(raised.value) == [(r["line"], r["column"]) for r in expected.get("related", [])]
+
+
+@pytest.mark.parametrize(("area", "case", "path"), TEXT_ERRORS, ids=ids(TEXT_ERRORS))
+def test_error_case_parse_lists_every_listed_error(area, case, path):
+    """Step 7: `parse` returns the whole list, in source order."""
+    import tdl
+
+    expected = wanted(path)
+    errors = tdl.parse(read(path).decode("utf-8")).errors
+    assert [first(e) for e in errors] == [(e["code"], e["line"], e["column"]) for e in expected]
+    assert [related(e) for e in errors] == [
+        [(r["line"], r["column"]) for r in e.get("related", [])] for e in expected
+    ]
 
 
 def apply(doc, edit):

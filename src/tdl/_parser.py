@@ -201,7 +201,14 @@ class _Reader:
         version = metadata["TDL"]
         version_text = version.text if isinstance(version, Word) else version.value
         major = re.match(r"[0-9]+", version_text)
-        if major is None or int(major.group()) > _MAJOR:
+        if major is None:
+            self.fail(
+                "tdl-unsupported-version",
+                version.start,
+                message=f"The TDL version {version_text} does not start with a number.",
+                hint=f"Write TDL: {LANGUAGE_VERSION}",
+            )
+        if int(major.group()) > _MAJOR:
             self.fail(
                 "tdl-unsupported-version",
                 version.start,
@@ -450,7 +457,12 @@ class _Reader:
             return
         if char == "#" and at > end:
             return
-        self.fail("tdl-unexpected-text", at)
+        self.fail(
+            "tdl-unexpected-text",
+            at,
+            message="Only a comment may follow this value on its line.",
+            hint="Remove the extra text or move it to a new line",
+        )
 
     def run(self, at: int, level: int, stops: str) -> tuple[Value, int]:
         """An unquoted value: a word, number, percentage, call, slot or template."""
@@ -538,7 +550,14 @@ class _Reader:
             slot, end = self.slot(at)
             return slot, end
         if char == "#":
-            self.hash_in_value_position(at)
+            if text[at + 1 : at + 2] not in _SPACE_AFTER_HASH:
+                self.fail("tdl-bare-hash", at)
+            self.fail(
+                "tdl-unexpected-text",
+                at,
+                message="A comment cannot start inside a call.",
+                hint="Close the call with ) before the comment",
+            )
         if char == ",":
             self.fail("tdl-unexpected-text", at)
         call = _CALL.match(text, at)
@@ -565,7 +584,7 @@ class _Reader:
         while True:
             pos = _skip(_SKIP, text, pos)
             char = text[pos : pos + 1]
-            if char == "":
+            if char == "" or char == "}":
                 self.fail(
                     "tdl-unexpected-text",
                     pos,

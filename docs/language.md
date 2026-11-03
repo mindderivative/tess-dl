@@ -2,7 +2,7 @@
 
 TDL is a structure-only data language: blocks, properties and values. It does not know what a bar, a monitor or a colour is. The program that reads a file (the Tesserae Shell, Tesserae UI) decides which blocks and keys it accepts and what a value means. Expressions belong to TEL: TDL only marks where one starts and ends.
 
-This page is the reference for what the `tdl` library reads. Each section shows an example first, then the rule. Where TDL behaves differently from CSS, QML or Flutter, a note says so. The reasons for the choices are in [decisions.md](decisions.md) (rows G1 to G27).
+This page is the reference for what the `tdl` library reads. Each section shows an example first, then the rule. Where TDL behaves differently from CSS, QML or Flutter, a note says so. The reasons for the choices are in [decisions.md](decisions.md) (rows G1 to G29).
 
 Status: draft for the first slice. Every example here becomes a case in `tests/corpus/`.
 
@@ -248,12 +248,12 @@ Every error has a stable `code`, a one-sentence message in plain words, a hint t
 | `tdl-bad-escape` | A `\` followed by something that is not an escape | Use a valid escape or write `\\` | The backslash |
 | `tdl-duplicate-key` | A property key twice in one block (or metadata) | Remove one; the message names both places | The second key; the first is a related origin |
 | `tdl-bare-hash` | A value that starts with `#` outside quotes | Quote the colour: `"#ffffff"` | The `#` |
-| `tdl-unexpected-text` | Text that is not valid where it stands: a key with no `:` or no value, an `Else` with no `If`, a `For` without `In` or `Key`, an unclosed `(` in a call, a stray `{` in an unquoted value | The hint says what that spot needs, for example `Write Key: value` | The first character that does not fit |
+| `tdl-unexpected-text` | Text that is not valid where it stands. Kinds: a key with no `:` (or a block head with no `{`); a property with no value; an `Else` with no `If`; an `If` or `For` missing a part (the condition, `In`, the list, `Key`, the key, or the `{` of its body); an unclosed `(` or `[`; a stray `{` in an unquoted value or a call; text after a string or call on the same line; a `,` or a comment inside a call; anything else that cannot start a metadata line, the root block, an entry or a value | The hint says what that spot needs, for example `Write Key: value` | The first character that does not fit (see below) |
 | `tdl-reserved-name` | A block head or `Name:` that is `If`, `Else`, `For`, `In` or `Key` | Choose another name | The word |
 
 Those are the 18 language errors. Checking the root block against the file name is not TDL's job: the program that reads the file does that.
 
-Where it points, in detail (G20): `tdl-no-root` at the first character after the closing `---` line, including its line ending. `tdl-unexpected-text` at: the first non-whitespace character after the `:` for a missing value; the first character after the key and its whitespace for a missing `:`; the line end for an unclosed `(`; the `{` that opens the body for a `For` without `Key`; the first `{{` after the variable for a `For` without `In`; the `Else` for an `Else` without `If`; the `{` for a stray `{` in an unquoted value. `tdl-bad-encoding` is placed by counting the valid UTF-8 prefix before the first bad byte (G21).
+Where it points, in detail (G20, G28): `tdl-no-root` at the first character after the closing `---` line, including its line ending. `tdl-unexpected-text` at: the first non-whitespace character after the `:` for a missing value (a `#` that starts a comment, or the line end); the first character after the key and its whitespace for a missing `:` or `{`; the `Else` for an `Else` with no `If`; the character where the missing part of an `If` or `For` should start (for a `For` with no `Key`, the `{` that opens the body; with no `In`, the first `{{` after the variable; with no `{` at all, the line end); the line end for an unclosed `(`; for an unclosed `[`, the `}` or the end of the file that reaches it; the `{` for a stray `{` in an unquoted value or a call argument; the first non-whitespace character after a string or a call; the `,` or the `#` inside a call; otherwise the first character that cannot start the line, root block, entry or value. `tdl-bad-encoding` is placed by counting the valid UTF-8 prefix before the first bad byte (G21). A `TDL:` value that does not start with a number is `tdl-unsupported-version` too.
 
 Four more codes report what the library will not read at all. Each stops the file with one error:
 

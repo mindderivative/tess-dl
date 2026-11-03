@@ -76,3 +76,41 @@ def check_nesting(levels, kind):
         code = error.code
     # the root block is level 1, so `levels` more make 1 + levels
     assert (code == "tdl-too-deep") == (levels + 1 > 64)
+
+
+JARGON = ("token", "lexeme", "production", "parser", "parse error", "syntax error", "EOF")
+
+
+def check_error_shape(text: str, error: tdl.TDLSyntaxError) -> None:
+    lines = text.split("\n")
+    for origin in (error.origin, *error.related):
+        assert 1 <= origin.line <= len(lines)
+        assert 1 <= origin.column <= len(lines[origin.line - 1]) + 1
+        assert (origin.end_line, origin.end_column) >= (origin.line, origin.column)
+        assert origin.offset <= len(text.encode("utf-8"))
+    assert error.message.endswith(".") and error.hint
+    assert not any(word in (error.message + error.hint).lower() for word in JARGON)
+    assert str(error) == f"{error.origin}: {error.message} ({error.hint})"
+
+
+@settings(max_examples=300, deadline=None)
+@given(SOUP)
+def test_every_error_has_a_real_position_and_plain_words(body):
+    text = "---\nTDL: 0.1\nName: T\n---\n" + body
+    try:
+        tdl.loads(text)
+    except tdl.TDLSyntaxError as error:
+        check_error_shape(text, error)
+
+
+def test_every_corpus_error_has_a_real_position_and_plain_words():
+    for path in sorted(CORPUS.glob("errors/*.tdl")):
+        data = path.read_bytes()
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        try:
+            tdl.loads(text)
+        except tdl.TDLSyntaxError as error:
+            check_error_shape(text, error)
