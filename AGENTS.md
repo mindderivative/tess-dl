@@ -43,7 +43,7 @@
 
 ## Agent instructions
 * `graphify-out/` is a local code graph, ignored by git. The `Stop` hook in `.claude/settings.json` runs `tools/graphify_refresh.sh`, which runs `graphify update .` when a `.py` file under `src/`, `tests/` or `tools/` is newer than the graph (`--check` says whether it is stale).
-* Do not run `graphify claude install`; after upgrading graphify run `python3 tools/graphify_agents.py` (`--check` reports only), which keeps the `## graphify` section below and the PreToolUse hooks current.
+* Do not run `graphify claude install`; after upgrading graphify run `python3 tools/graphify_agents.py` (`--check` reports only), which keeps the `## graphify` section below and the PreToolUse hooks current. It matches hooks by command, not matcher, because this repo narrows the search guard from `Bash|Grep` to `Grep`: the guard held ordinary shell calls (`cat`, `sed`, `gh`, heredocs) that are not searches. Use the `grep` tool for searches; the `Read|Glob` guard is unchanged.
 * They live in `AGENTS.md`; `CLAUDE.md` only imports it (`@AGENTS.md`). If any tool adds a section to `CLAUDE.md`, move it into `AGENTS.md` and leave `CLAUDE.md` as the single import line.
 
 ## graphify
