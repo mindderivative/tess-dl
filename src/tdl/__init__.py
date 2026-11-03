@@ -6,6 +6,7 @@ doc = tdl.loads(text, path="Main_Shell.tdl")   # raises TDLSyntaxError on the fi
 doc.root.type                                   # the root block's head word
 """
 
+from ._io import dump, dumps, load
 from ._parser import LANGUAGE_VERSION, loads
 from .errors import TDLError, TDLSyntaxError
 from .limits import Limits
@@ -56,5 +57,8 @@ __all__ = [
     "Value",
     "Word",
     "__version__",
+    "dump",
+    "dumps",
+    "load",
     "loads",
 ]

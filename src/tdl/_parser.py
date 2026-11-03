@@ -9,7 +9,7 @@ import re
 from typing import NoReturn
 
 from ._source import Source
-from .errors import syntax_error
+from .errors import syntax_error, too_large
 from .limits import Limits
 from .tree import (
     Block,
@@ -96,16 +96,30 @@ class _Reader:
             message=f"Blocks are nested more than {self.limits.max_depth} levels deep.",
         )
 
+    def check_size(self) -> None:
+        """`tdl-too-large` before any parsing; text that is not UTF-8 is `tdl-bad-encoding`."""
+        text = self.text
+        limit = self.limits.max_bytes
+        if len(text) > limit:
+            raise too_large(self.source.path, limit)
+        if text.isascii():
+            return
+        try:
+            size = len(text.encode("utf-8"))
+        except UnicodeEncodeError as error:
+            self.fail(
+                "tdl-bad-encoding",
+                error.start,
+                message="This text has a character that cannot be written as UTF-8.",
+            )
+        if size > limit:
+            raise too_large(self.source.path, limit)
+
     # the file
 
     def document(self) -> Document:
         text = self.text
-        if len(text) > self.limits.max_bytes or len(text.encode("utf-8")) > self.limits.max_bytes:
-            self.fail(
-                "tdl-too-large",
-                0,
-                message=f"The file is larger than {self.limits.max_bytes} bytes.",
-            )
+        self.check_size()
         first = 1 if text.startswith(_BOM) else 0
         fence = _FENCE.match(text, first)
         if fence is None:

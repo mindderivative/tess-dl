@@ -78,3 +78,9 @@ def syntax_error(
     """Builds the error for `code`; `message` and `hint` replace the stock wording."""
     stock_message, stock_hint = _WORDS[code]
     return TDLSyntaxError(code, message or stock_message, hint or stock_hint, origin, related)
+
+
+def too_large(path: str | None, limit: int) -> TDLSyntaxError:
+    """The error for text over `limit` bytes; it points at the start of the file."""
+    origin = Origin(path, 1, 1, 1, 1, 0)
+    return syntax_error("tdl-too-large", origin, message=f"The file is larger than {limit} bytes.")
