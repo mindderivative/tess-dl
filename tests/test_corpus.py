@@ -48,14 +48,22 @@ def same(actual, expected):
 
 
 @pytest.mark.parametrize(("area", "case", "path"), OK, ids=ids(OK))
-def test_ok_case_reads_and_round_trips(area, case, path):
+def test_ok_case_reads_to_the_canonical_tree(area, case, path):
+    import tdl
+
+    text = read(path).decode("utf-8")
+    expected = json.loads(path.read_text("utf-8"))
+    doc = tdl.loads(text, path=f"{area}/{case}.tdl")
+    assert same(doc.canonical(), expected["canonical"])
+
+
+@pytest.mark.parametrize(("area", "case", "path"), OK, ids=ids(OK))
+def test_ok_case_round_trips_byte_for_byte(area, case, path):
     import tdl
 
     data = read(path)
     text = data.decode("utf-8")
-    expected = json.loads(path.read_text("utf-8"))
     doc = tdl.loads(text, path=f"{area}/{case}.tdl")
-    assert same(doc.canonical(), expected["canonical"])
     assert tdl.dumps(doc) == text
     assert tdl.dumps(tdl.load(io.BytesIO(data))) == text
 
