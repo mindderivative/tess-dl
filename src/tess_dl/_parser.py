@@ -1,4 +1,4 @@
-"""The reader: TDL text to a tree. Private; `tdl.loads` is the way in.
+"""The reader: TDL text to a tree. Private; `tess_dl.loads` is the way in.
 
 One pass over the text with a cursor and compiled patterns, recursive descent for nesting.
 Nesting is capped by `Limits.max_depth` (64), far below Python's recursion limit.

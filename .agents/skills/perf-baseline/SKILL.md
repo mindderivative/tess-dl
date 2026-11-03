@@ -7,7 +7,7 @@ description: 'Use for TDL performance work (plan step 8): measuring parse time a
 
 The budget (TDL Library API, "Performance Budget", proposed, to be measured on the first slice): a 100 KB file parses in under 20 ms; a file at the 1 MiB limit in under 250 ms; one pass over the text, no copy beyond the tree; no thread, no timer. `loads` of the same text twice gives equal documents (caching is the shell's business). Until a number is measured on this machine the budget is a target, not a result: **do not claim a speed-up or a pass without a number.**
 
-## Limits (`tdl.Limits(max_bytes=1_048_576, max_errors=50, max_depth=64)`)
+## Limits (`tess_dl.Limits(max_bytes=1_048_576, max_errors=50, max_depth=64)`)
 
 - Over `max_bytes`: `tdl-too-large`, **before** any parsing work (check the length first). One byte under parses; one byte over raises. Build the input in the test.
 - Over `max_errors`: the list stops at 50 and the last entry says so; recovery stops doing work after the cap.
@@ -28,4 +28,4 @@ Results go in `docs/benchmarks.md` with the date, Python version, machine, commi
 
 - No tuning before the behaviour tests and the round trip pass (steps 3 to 7 before 8).
 - A guard that protects memory or time can look redundant for results; pin it with a `tracemalloc` or wall-clock test instead of deleting it.
-- Importing `tdl` imports no third-party package, and nothing in a benchmark may be needed to import it.
+- Importing `tess_dl` imports no third-party package, and nothing in a benchmark may be needed to import it.

@@ -2,7 +2,7 @@
 
 TDL is a structure-only data language: blocks, properties and values. It does not know what a bar, a monitor or a colour is. The program that reads a file (the Tesserae Shell, Tesserae UI) decides which blocks and keys it accepts and what a value means. Expressions belong to TEL: TDL only marks where one starts and ends.
 
-This page is the reference for what the `tdl` library reads. Each section shows an example first, then the rule. Where TDL behaves differently from CSS, QML or Flutter, a note says so. The reasons for the choices are in [decisions.md](decisions.md) (rows G1 to G33).
+This page is the reference for what the `tess_dl` library reads. Each section shows an example first, then the rule. Where TDL behaves differently from CSS, QML or Flutter, a note says so. The reasons for the choices are in [decisions.md](decisions.md) (rows G1 to G34).
 
 Status: draft for the first slice. Every example here becomes a case in `tests/corpus/`.
 
@@ -261,10 +261,10 @@ Four more codes report what the library will not read at all. Each stops the fil
 |---|---|---|
 | `tdl-too-large` | The text is longer than 1 MiB (checked before any parsing) | Split the file |
 | `tdl-too-deep` | Blocks, bodies, lists and calls nest deeper than 64 levels | Flatten the nesting |
-| `tdl-unsupported-version` | The `TDL:` version is newer than this library's | Use a newer `tdl` |
+| `tdl-unsupported-version` | The `TDL:` version is newer than this library's | Use a newer `tesserae-dl` |
 | `tdl-bad-encoding` | The bytes are not valid UTF-8 (`load`; the message gives the byte offset), or the text holds a character UTF-8 cannot write, such as a lone surrogate (`loads`, G30) | Save the file as UTF-8 |
 
-The error list stops at 50 errors; the last entry says so (`The list stops at 50 errors.`). `tdl.parse` lists every mistake it finds, in source order (G31):
+The error list stops at 50 errors; the last entry says so (`The list stops at 50 errors.`). `tess_dl.parse` lists every mistake it finds, in source order (G31):
 
 - A bad entry is recorded and skipped to the end of its line, or to the `}` that closes its block; braces opened on the bad line itself are skipped with it.
 - A bad metadata line is recorded and the next line is read; each missing or wrong required key (`TDL`, `Name`) is reported and reading goes on.

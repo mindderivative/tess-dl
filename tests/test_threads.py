@@ -1,11 +1,11 @@
-"""`tdl` parses on any thread and returns immutable data (docs/api.md, "Python Contract")."""
+"""`tess_dl` parses on any thread and returns immutable data (docs/api.md, "Python Contract")."""
 
 import dataclasses
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-import tdl
+import tess_dl
 from layouts import OK_TEXTS
 
 HEAD = "---\nTDL: 0.1\nName: T\n---\n"
@@ -13,7 +13,7 @@ BAD_TEXTS = [HEAD + 'Shell {\n  Width 32\n  Color: #fff\n  Text: "abc\n}\n', "Sh
 
 
 def snapshot(text):
-    result = tdl.parse(text)
+    result = tess_dl.parse(text)
     return (
         result.document.canonical() if result.document else None,
         [(e.code, e.origin.line, e.origin.column) for e in result.errors],
@@ -29,13 +29,13 @@ def test_many_threads_reading_the_same_texts_get_the_same_results_as_one():
 
 
 def test_one_document_can_be_edited_and_written_from_many_threads():
-    doc = tdl.loads(HEAD + "Shell {\n  Bar { Name: B }\n}\n")
-    expected = tdl.dumps(doc.with_metadata("UID", "x"))
+    doc = tess_dl.loads(HEAD + "Shell {\n  Bar { Name: B }\n}\n")
+    expected = tess_dl.dumps(doc.with_metadata("UID", "x"))
 
     def work(i):
         edited = doc.with_metadata("UID", "x")
         again = doc.find("T.B").with_property("Height", str(i))
-        return tdl.dumps(edited), tdl.dumps(again), tdl.dumps(doc)
+        return tess_dl.dumps(edited), tess_dl.dumps(again), tess_dl.dumps(doc)
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         results = list(pool.map(work, range(200)))
@@ -44,7 +44,7 @@ def test_one_document_can_be_edited_and_written_from_many_threads():
 
 
 def test_nodes_cannot_be_changed_in_place():
-    doc = tdl.loads(HEAD + "Shell { Width: 1 }\n")
+    doc = tess_dl.loads(HEAD + "Shell { Width: 1 }\n")
     prop = doc.root.entries[0]
     for node, field in [(doc, "text"), (doc.root, "type"), (prop, "key"), (prop.value, "value")]:
         with pytest.raises(dataclasses.FrozenInstanceError):

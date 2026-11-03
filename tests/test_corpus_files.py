@@ -1,4 +1,4 @@
-"""The corpus files themselves: pairing, shape, codes and positions. Needs no `tdl`."""
+"""The corpus files themselves: pairing, shape, codes and positions. Needs no `tess_dl`."""
 
 import json
 from pathlib import Path

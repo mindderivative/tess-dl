@@ -3,18 +3,18 @@
 > Moved here from the Tesserae Shell design vault on 2026-11-02. This file is now the source of truth; the vault keeps a short pointer. Names of vault notes and decisions (D1 to D94, the ADR-0014 file layout and so on) refer to that vault and are not links.
 
 > [!NOTE]
-> The brief for the first piece of work in the `tess-dl` project (PyPI `tesserae-dl`, import `tdl`): a parser that reads a TDL file into a lossless tree, reports the 22 error codes with positions, writes the file back byte for byte, and is checked by a shared test corpus. The brief collects what the vault already decided so the `tess-dl` session does not have to dig. It is written for the maintainer to hand over; the vault sends nothing to another project (AGENTS > 6. Requests Between Projects). Where the vault is silent, the brief says so and gives a recommendation.
+> The brief for the first piece of work in the `tess-dl` project (PyPI `tesserae-dl`, import `tess_dl`): a parser that reads a TDL file into a lossless tree, reports the 22 error codes with positions, writes the file back byte for byte, and is checked by a shared test corpus. The brief collects what the vault already decided so the `tess-dl` session does not have to dig. It is written for the maintainer to hand over; the vault sends nothing to another project (AGENTS > 6. Requests Between Projects). Where the vault is silent, the brief says so and gives a recommendation.
 
 ## Goal
 
 By the end of the first slice, this works:
 
 ```python
-import tdl
+import tess_dl
 
-doc = tdl.loads(text, path="Main_Shell.tdl")  # raises TDLError on the first mistake
-result = tdl.parse(text, path="Main_Shell.tdl")  # never raises; result.errors lists up to 50
-assert tdl.dumps(doc) == text  # exact round trip
+doc = tess_dl.loads(text, path="Main_Shell.tdl")  # raises TDLError on the first mistake
+result = tess_dl.parse(text, path="Main_Shell.tdl")  # never raises; result.errors lists up to 50
+assert tess_dl.dumps(doc) == text  # exact round trip
 doc2 = doc.with_metadata("UID", "0192...")  # one edit, every other byte unchanged
 ```
 
@@ -39,7 +39,7 @@ If a vault note and the `tess-dl` text disagree, the `tess-dl` text is the sourc
 
 ## Project Basics (Decided, D67)
 
-MIT licence; Python 3.14 or later; no runtime dependencies; pytest; the language version `0.1` is separate from the package version; fully typed with `py.typed`; every public name in `tdl.__all__`. Build tooling and CI follow the TEL project's choices unless there is a reason not to ([TDL Library API > Open Questions](api.md#open-questions) 7).
+MIT licence; Python 3.14 or later; no runtime dependencies; pytest; the language version `0.1` is separate from the package version; fully typed with `py.typed`; every public name in `tess_dl.__all__`. Build tooling and CI follow the TEL project's choices unless there is a reason not to ([TDL Library API > Open Questions](api.md#open-questions) 7).
 
 ## Order of Work
 
@@ -128,9 +128,9 @@ What the shell relies on, so the first slice does not have to guess:
 
 - Positions are 1-based `line` and `column` counted in characters, plus a byte `offset` ([TDL Library API > Errors](api.md#errors)).
 - A `Slot` carries `text` and `text_origin`, where `text_origin` is the first character after `{{`, and nothing is trimmed (Expression Language Requirements T17).
-- The shell converts an `Origin` to TEL's `Origin`; `tdl` imports nothing from TEL or tre.
+- The shell converts an `Origin` to TEL's `Origin`; `tess_dl` imports nothing from TEL or tre.
 - The shell writes `UID` through `with_metadata` and expects only that line to change (Risk Register R-06).
-- `tdl` parses on any thread and returns immutable data.
+- `tess_dl` parses on any thread and returns immutable data.
 
 ## Not in the First Slice
 

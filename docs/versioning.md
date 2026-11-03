@@ -2,20 +2,20 @@
 
 Two version numbers, kept apart:
 
-- **Package version** (`tdl.__version__`, `pyproject.toml`): [Semantic Versioning](https://semver.org).
+- **Package version** (`tess_dl.__version__`, `pyproject.toml`): [Semantic Versioning](https://semver.org).
   Below 1.0, a minor bump may break the API; the changelog says how.
-- **Language version** (`tdl.LANGUAGE_VERSION`, `"0.1"`): what a file declares in its metadata
+- **Language version** (`tess_dl.LANGUAGE_VERSION`, `"0.1"`): what a file declares in its metadata
   (`TDL: 0.1`) so later language changes do not break old files. A file declares a major and a
   minor; a file whose major is newer than the library's is `tdl-unsupported-version`. The package
   patch number never changes the language. Until 1.0 a minor bump may change the language.
 
 The two numbers are independent: package `0.1.0` and language `0.1` are both correct today.
 
-The PyPI name is `tesserae-dl`; the import name is `tdl` and the repository is `tess-dl`. Every
+The PyPI name is `tesserae-dl`; the import name is `tess_dl` and the repository is `tess-dl`. Every
 release is described in `CHANGELOG.md`; the steps to make one are in the `release-checklist` skill,
 and everything in it that publishes waits for the maintainer.
 
-Releases are git tags `vX.Y.Z`. Consumers such as the Tesserae Shell pin an exact `tdl` version.
+Releases are git tags `vX.Y.Z`. Consumers such as the Tesserae Shell pin an exact `tesserae-dl` version.
 The conformance corpus (`tests/corpus/`) is versioned with the package: it ships in the source
 distribution, and a consumer that wants it reads the released one for its pinned version.
 
@@ -33,7 +33,7 @@ one-time setup, by the maintainer:
 4. **Rehearse:** *Actions → Release → Run workflow* on `main` builds, tests and uploads to TestPyPI.
    Install it in a clean environment with
    `uv pip install --index-url https://test.pypi.org/simple/ tesserae-dl`.
-5. **Release:** with `pyproject.toml`, `tdl.__version__` and a `CHANGELOG.md` section agreeing, push
+5. **Release:** with `pyproject.toml`, `tess_dl.__version__` and a `CHANGELOG.md` section agreeing, push
    the tag: `git tag v0.1.0 && git push origin v0.1.0`. The workflow checks that the three agree and
    that the tag is `v` plus the version, runs the checks, builds, publishes to PyPI after the `pypi`
    environment is approved, and then creates the GitHub release from the changelog section.

@@ -1,4 +1,4 @@
-"""`dumps`, `dump` and `load` (private module; the names are public through `tdl`)."""
+"""`dumps`, `dump` and `load` (private module; the names are public through `tess_dl`)."""
 
 from typing import BinaryIO
 

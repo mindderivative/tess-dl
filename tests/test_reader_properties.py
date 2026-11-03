@@ -7,7 +7,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-import tdl
+import tess_dl
 from layouts import OK_TEXTS, SOUP
 
 CORPUS = Path(__file__).parent / "corpus"
@@ -18,10 +18,10 @@ CODES = {
 }
 
 
-def read_or_syntax_error(text: str) -> tdl.Document | None:
+def read_or_syntax_error(text: str) -> tess_dl.Document | None:
     try:
-        return tdl.loads(text)
-    except tdl.TDLSyntaxError as error:
+        return tess_dl.loads(text)
+    except tess_dl.TDLSyntaxError as error:
         assert error.code in CODES | {"tdl-too-large", "tdl-too-deep"}
         assert error.origin.line >= 1 and error.origin.column >= 1
         return None
@@ -65,8 +65,8 @@ def check_nesting(levels, kind):
     text = "---\nTDL: 0.1\nName: T\n---\nShell {\n" + body
     code = None
     try:
-        tdl.loads(text)
-    except tdl.TDLSyntaxError as error:
+        tess_dl.loads(text)
+    except tess_dl.TDLSyntaxError as error:
         code = error.code
     # the root block is level 1, so `levels` more make 1 + levels
     assert (code == "tdl-too-deep") == (levels + 1 > 64)
@@ -75,7 +75,7 @@ def check_nesting(levels, kind):
 JARGON = ("token", "lexeme", "production", "parser", "parse error", "syntax error", "EOF")
 
 
-def check_error_shape(text: str, error: tdl.TDLSyntaxError) -> None:
+def check_error_shape(text: str, error: tess_dl.TDLSyntaxError) -> None:
     lines = text.split("\n")
     for origin in (error.origin, *error.related):
         assert 1 <= origin.line <= len(lines)
@@ -92,8 +92,8 @@ def check_error_shape(text: str, error: tdl.TDLSyntaxError) -> None:
 def test_every_error_has_a_real_position_and_plain_words(body):
     text = "---\nTDL: 0.1\nName: T\n---\n" + body
     try:
-        tdl.loads(text)
-    except tdl.TDLSyntaxError as error:
+        tess_dl.loads(text)
+    except tess_dl.TDLSyntaxError as error:
         check_error_shape(text, error)
 
 
@@ -105,6 +105,6 @@ def test_every_corpus_error_has_a_real_position_and_plain_words():
         except UnicodeDecodeError:
             continue
         try:
-            tdl.loads(text)
-        except tdl.TDLSyntaxError as error:
+            tess_dl.loads(text)
+        except tess_dl.TDLSyntaxError as error:
             check_error_shape(text, error)

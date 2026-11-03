@@ -28,7 +28,7 @@ The board is the GitHub project "Tesserae Data Language" (project 5; `python3 to
 
 ## 3. Change the code
 
-Small edits. A new public name gets the `sharp-edges` question: does the easy path lead to a mistake? Every public name goes in `tdl.__all__`; nothing from the lexer is public.
+Small edits. A new public name gets the `sharp-edges` question: does the easy path lead to a mistake? Every public name goes in `tess_dl.__all__`; nothing from the lexer is public.
 
 ## 4. Check
 

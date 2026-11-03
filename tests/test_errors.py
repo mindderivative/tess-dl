@@ -9,12 +9,12 @@ CORPUS = Path(__file__).parent / "corpus" / "errors"
 
 
 def test_bad_encoding_corpus_case_points_at_the_character_before_the_bad_byte():
-    import tdl
-    from tdl._decode import decode
+    import tess_dl
+    from tess_dl._decode import decode
 
     data = (CORPUS / "bad-encoding.tdl").read_bytes()
     expected = json.loads((CORPUS / "bad-encoding.expect.json").read_text("utf-8"))["errors"][0]
-    with pytest.raises(tdl.TDLSyntaxError) as raised:
+    with pytest.raises(tess_dl.TDLSyntaxError) as raised:
         decode(data, "bad-encoding.tdl")
     error = raised.value
     assert (error.code, error.origin.line, error.origin.column) == (
@@ -37,16 +37,16 @@ def test_bad_encoding_corpus_case_points_at_the_character_before_the_bad_byte():
     ],
 )
 def test_bad_encoding_position_comes_from_the_valid_text_before_it(data, line, column, offset):
-    import tdl
-    from tdl._decode import decode
+    import tess_dl
+    from tess_dl._decode import decode
 
-    with pytest.raises(tdl.TDLSyntaxError) as raised:
+    with pytest.raises(tess_dl.TDLSyntaxError) as raised:
         decode(data, None)
     origin = raised.value.origin
     assert (origin.line, origin.column, origin.offset) == (line, column, offset)
 
 
 def test_valid_bytes_decode_and_keep_the_byte_order_mark():
-    from tdl._decode import decode
+    from tess_dl._decode import decode
 
     assert decode("\ufeffé\r\n".encode(), None) == "\ufeffé\r\n"

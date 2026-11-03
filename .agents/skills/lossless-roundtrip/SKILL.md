@@ -5,7 +5,7 @@ description: 'Use when writing or reviewing the TDL lexer, parser, tree, dumps o
 
 # Lossless round trip
 
-The library's promise: `tdl.dumps(tdl.loads(text)) == text` for any file it accepts, and an edit changes **only** the bytes the edit names (the shell writes `UID` through `with_metadata` and relies on this: Risk Register R-06). Everything below protects those two lines.
+The library's promise: `tess_dl.dumps(tess_dl.loads(text)) == text` for any file it accepts, and an edit changes **only** the bytes the edit names (the shell writes `UID` through `with_metadata` and relies on this: Risk Register R-06). Everything below protects those two lines.
 
 ## Design rules
 

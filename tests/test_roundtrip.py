@@ -6,29 +6,29 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-import tdl
+import tess_dl
 from layouts import HEAD, files
 
 
 @settings(max_examples=300, deadline=None)
 @given(files())
 def test_any_valid_file_round_trips_through_text_and_bytes(text):
-    doc = tdl.loads(text)
-    assert tdl.dumps(doc) == text
+    doc = tess_dl.loads(text)
+    assert tess_dl.dumps(doc) == text
     data = text.encode("utf-8")
-    assert tdl.dumps(tdl.load(io.BytesIO(data))) == text
+    assert tess_dl.dumps(tess_dl.load(io.BytesIO(data))) == text
     out = io.BytesIO()
-    tdl.dump(doc, out)
+    tess_dl.dump(doc, out)
     assert out.getvalue() == data
 
 
 @settings(max_examples=200, deadline=None)
 @given(files())
 def test_reading_what_was_dumped_gives_an_equal_document(text):
-    doc = tdl.loads(text, path="a.tdl")
+    doc = tess_dl.loads(text, path="a.tdl")
     out = io.BytesIO()
-    tdl.dump(doc, out)
-    again = tdl.load(io.BytesIO(out.getvalue()), path="a.tdl")
+    tess_dl.dump(doc, out)
+    again = tess_dl.load(io.BytesIO(out.getvalue()), path="a.tdl")
     assert again == doc
     assert again.canonical() == doc.canonical()
 
@@ -37,12 +37,12 @@ def walk(node, text, outer):
     """Every entry's span lies inside its parent's, the entries do not overlap, and the span
     slices back to text that starts with the entry's own word."""
     kids = {
-        tdl.Block: lambda n: n.entries,
-        tdl.If: lambda n: n.body + (n.else_body or ()),
-        tdl.For: lambda n: n.body,
+        tess_dl.Block: lambda n: n.entries,
+        tess_dl.If: lambda n: n.body + (n.else_body or ()),
+        tess_dl.For: lambda n: n.body,
     }.get(type(node), lambda n: ())(node)
     assert outer[0] <= node.start <= node.end <= outer[1]
-    if isinstance(node, tdl.Block):
+    if isinstance(node, tess_dl.Block):
         assert text[node.start : node.end].startswith(node.type)
     previous = node.start
     for kid in kids:
@@ -54,7 +54,7 @@ def walk(node, text, outer):
 @settings(max_examples=200, deadline=None)
 @given(files())
 def test_spans_nest_and_do_not_overlap(text):
-    doc = tdl.loads(text)
+    doc = tess_dl.loads(text)
     walk(doc.root, text, (0, len(text)))
     assert doc.metadata.start >= (1 if text.startswith("\ufeff") else 0)
 
@@ -64,15 +64,15 @@ def test_spans_nest_and_do_not_overlap(text):
 def test_load_on_arbitrary_bytes_raises_only_tdl_errors(data, with_head):
     payload = (HEAD.encode() + b"Shell {\n" + data) if with_head else data
     try:
-        tdl.load(io.BytesIO(payload))
-    except tdl.TDLError:
+        tess_dl.load(io.BytesIO(payload))
+    except tess_dl.TDLError:
         pass
 
 
 def test_dump_keeps_the_byte_order_mark_and_each_line_ending():
     text = "\ufeff" + HEAD.replace("\n", "\r\n") + "Shell {\r\n  Width: 1\n}"
     out = io.BytesIO()
-    tdl.dump(tdl.loads(text), out)
+    tess_dl.dump(tess_dl.loads(text), out)
     assert out.getvalue() == text.encode("utf-8")
     assert out.getvalue().startswith(b"\xef\xbb\xbf")
 
@@ -85,8 +85,8 @@ def test_dump_keeps_the_byte_order_mark_and_each_line_ending():
     ],
 )
 def test_text_that_cannot_be_utf8_is_a_bad_encoding_error_not_a_python_one(text, line, column):
-    with pytest.raises(tdl.TDLSyntaxError) as raised:
-        tdl.loads(text)
+    with pytest.raises(tess_dl.TDLSyntaxError) as raised:
+        tess_dl.loads(text)
     error = raised.value
     assert (error.code, error.origin.line, error.origin.column) == (
         "tdl-bad-encoding",
@@ -110,8 +110,8 @@ class CountingReader(io.BytesIO):
 def test_load_refuses_a_file_over_the_limit_without_reading_it_whole():
     limit = 1000
     reader = CountingReader(b"x" * 50_000)
-    with pytest.raises(tdl.TDLSyntaxError) as raised:
-        tdl.load(reader, limits=tdl.Limits(max_bytes=limit))
+    with pytest.raises(tess_dl.TDLSyntaxError) as raised:
+        tess_dl.load(reader, limits=tess_dl.Limits(max_bytes=limit))
     assert (raised.value.code, raised.value.origin.line, raised.value.origin.column) == (
         "tdl-too-large",
         1,
@@ -134,4 +134,4 @@ def test_load_reads_a_stream_that_returns_short_reads():
             chunk, self.rest = bytes(self.rest[:3]), self.rest[3:]
             return chunk
 
-    assert tdl.dumps(tdl.load(Trickle())) == data.decode()
+    assert tess_dl.dumps(tess_dl.load(Trickle())) == data.decode()

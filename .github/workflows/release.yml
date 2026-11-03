@@ -23,13 +23,13 @@ jobs:
       - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: false
-      - name: The tag, pyproject.toml and tdl.__version__ agree
+      - name: The tag, pyproject.toml and tess_dl.__version__ agree
         run: |
           python3 - <<'PY'
           import os, re, tomllib
           version = tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]
-          init = re.search(r'__version__ = "([^"]+)"', open("src/tdl/__init__.py").read()).group(1)
-          assert version == init, f"pyproject {version} != tdl.__version__ {init}"
+          init = re.search(r'__version__ = "([^"]+)"', open("src/tess_dl/__init__.py").read()).group(1)
+          assert version == init, f"pyproject {version} != tess_dl.__version__ {init}"
           if os.environ["GITHUB_REF_TYPE"] == "tag":
               tag = os.environ["GITHUB_REF_NAME"]
               assert tag == f"v{version}", f"tag {tag} != v{version}"
@@ -47,10 +47,10 @@ jobs:
           cd /tmp && /tmp/smoke/bin/python -I -c "
           import sys
           before = set(sys.modules)
-          import tdl
+          import tess_dl
           new = {m.split('.')[0] for m in set(sys.modules) - before}
-          assert not new - set(sys.stdlib_module_names) - {'tdl'}, new
-          print(tdl.__version__, tdl.LANGUAGE_VERSION)
+          assert not new - set(sys.stdlib_module_names) - {'tess_dl'}, new
+          print(tess_dl.__version__, tess_dl.LANGUAGE_VERSION)
           "
       - uses: actions/upload-artifact@v7
         with:

@@ -41,10 +41,10 @@ jobs:
           cd /tmp && /tmp/smoke/bin/python -I -c "
           import sys
           before = set(sys.modules)
-          import tdl
+          import tess_dl
           new = {m.split('.')[0] for m in set(sys.modules) - before}
-          assert not new - set(sys.stdlib_module_names) - {'tdl'}, new
-          print(tdl.__version__, tdl.LANGUAGE_VERSION)
+          assert not new - set(sys.stdlib_module_names) - {'tess_dl'}, new
+          print(tess_dl.__version__, tess_dl.LANGUAGE_VERSION)
           text = '---\nTDL: 0.1\nName: T\n---\nShell { }\n'
-          assert tdl.dumps(tdl.loads(text)) == text
+          assert tess_dl.dumps(tess_dl.loads(text)) == text
           "

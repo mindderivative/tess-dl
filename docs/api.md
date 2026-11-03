@@ -3,7 +3,7 @@
 > Moved here from the Tesserae Shell design vault on 2026-11-02. This file is now the source of truth; the vault keeps a short pointer. Names of vault notes and decisions (D1 to D94, the ADR-0014 file layout and so on) refer to that vault and are not links.
 
 > [!NOTE]
-> The public Python API of the TDL library: repository and folder `tess-dl`, PyPI package `tesserae-dl`, import name `tdl` (ADR-0014 Shell File Language > Open Items, maintainer, 2026-11-02). The library reads TDL text into a tree that keeps everything in the file (comments, layout, positions), reports errors with `file:line:column`, and writes the text back unchanged except for a requested edit. It knows nothing about bars, monitors, tre, or the shell's keys. This note is a proposal for the maintainer, written so the `tess-dl` session can start from it. Names follow the Python standard library where a library does the same job (`json`, `tomllib`), because the maintainer asked that a person from another framework finds a familiar shape (ADR-0014 Shell File Language > Ninth-Round Decisions (2026-11-02) D68).
+> The public Python API of the TDL library: repository and folder `tess-dl`, PyPI package `tesserae-dl`, import name `tess_dl` (ADR-0014 Shell File Language > Open Items, maintainer, 2026-11-02). The library reads TDL text into a tree that keeps everything in the file (comments, layout, positions), reports errors with `file:line:column`, and writes the text back unchanged except for a requested edit. It knows nothing about bars, monitors, tre, or the shell's keys. This note is a proposal for the maintainer, written so the `tess-dl` session can start from it. Names follow the Python standard library where a library does the same job (`json`, `tomllib`), because the maintainer asked that a person from another framework finds a familiar shape (ADR-0014 Shell File Language > Ninth-Round Decisions (2026-11-02) D68).
 
 ## Purpose and Scope
 
@@ -15,13 +15,13 @@
 
 ```mermaid
 flowchart LR
-    T[".tdl text"] --> P["tdl: parse"]
+    T[".tdl text"] --> P["tess_dl: parse"]
     P --> D["Document tree\n(lossless, with positions)"]
     D --> S["Shell: schema check,\ntyping, Import, UIDs"]
     S --> E["TEL: compile each slot"]
     E --> M["Shell model"]
     M --> R["tre nodes and windows"]
-    D -. "edit (UID)" .-> W["tdl: dumps"]
+    D -. "edit (UID)" .-> W["tess_dl: dumps"]
     W --> F[".tdl text, unchanged\nexcept the edit"]
 ```
 
@@ -33,11 +33,11 @@ The tree is not something tre can render. It describes the file. The shell turns
 
 | Function | Does | Familiar from |
 |---|---|---|
-| `tdl.loads(text, *, path=None, limits=None)` | Parses a string. Returns a `Document`. Raises `TDLError` on the first syntax error | `json.loads`, `tomllib.loads` |
-| `tdl.load(fp, *, path=None, limits=None)` | Same, from a binary file object the caller opened (UTF-8; a byte-order mark is accepted). The library never opens a path itself | `tomllib.load` |
-| `tdl.parse(text, *, path=None, limits=None)` | Parses and never raises for a syntax error. Returns a `ParseResult(document, errors)`: the best tree it could build (`None` when the metadata or root block cannot be read, a limit stops the file or the cap is reached) and every error found, in source order, up to `Limits.max_errors`. For editors and for the shell's "collect every error, then stop" rule | `ast.parse` (but tolerant) |
-| `tdl.dumps(document)` | Returns the text of a document. For a document from `loads`, the result is exactly the input, byte for byte | `json.dumps` |
-| `tdl.dump(document, fp)` | Writes that text to a binary file object | `json.dump` |
+| `tess_dl.loads(text, *, path=None, limits=None)` | Parses a string. Returns a `Document`. Raises `TDLError` on the first syntax error | `json.loads`, `tomllib.loads` |
+| `tess_dl.load(fp, *, path=None, limits=None)` | Same, from a binary file object the caller opened (UTF-8; a byte-order mark is accepted). The library never opens a path itself | `tomllib.load` |
+| `tess_dl.parse(text, *, path=None, limits=None)` | Parses and never raises for a syntax error. Returns a `ParseResult(document, errors)`: the best tree it could build (`None` when the metadata or root block cannot be read, a limit stops the file or the cap is reached) and every error found, in source order, up to `Limits.max_errors`. For editors and for the shell's "collect every error, then stop" rule | `ast.parse` (but tolerant) |
+| `tess_dl.dumps(document)` | Returns the text of a document. For a document from `loads`, the result is exactly the input, byte for byte | `json.dumps` |
+| `tess_dl.dump(document, fp)` | Writes that text to a binary file object | `json.dump` |
 
 `path` is a label for error messages (`Top_Bar_Module.tdl`). It is never opened.
 
@@ -61,11 +61,11 @@ One base class, `TDLError`, with a subclass `TDLSyntaxError`. Every error has:
 
 ### Limits
 
-`tdl.Limits(max_bytes=1_048_576, max_errors=50, max_depth=64)`. All three are decided: 1 MiB and 50 errors (Validation and Errors > Parsing) and depth 64, counting the root block as 1 (G11). A file over a limit stops with `tdl-too-large` or, for depth, `tdl-too-deep`. TEL uses a `Limits` class the same way.
+`tess_dl.Limits(max_bytes=1_048_576, max_errors=50, max_depth=64)`. All three are decided: 1 MiB and 50 errors (Validation and Errors > Parsing) and depth 64, counting the root block as 1 (G11). A file over a limit stops with `tdl-too-large` or, for depth, `tdl-too-deep`. TEL uses a `Limits` class the same way.
 
 ### The Tree
 
-All classes are importable from `tdl`. Nodes are immutable: they can be shared between threads, and an edit makes a new document.
+All classes are importable from `tess_dl`. Nodes are immutable: they can be shared between threads, and an edit makes a new document.
 
 | Class | Fields | Notes |
 |---|---|---|
@@ -120,7 +120,7 @@ Every edit keeps comments, blank lines, indentation and the order of everything 
 
 ### Building a Tree in Code
 
-The Python builder (Python Builder) must produce the same tree as the parser, so the nodes can be constructed directly: `Block("Bar", [Property("Edge", Word("TOP"))])`. A constructed node has no position. `tdl.dumps` formats a constructed tree with the library's standard layout (two-space indent). `node.canonical()` returns a normalised plain structure with trivia and positions dropped, so a parity test compares two trees by `==`. Names follow TEL's `canonical` (Expression Language Requirements > TEL 0.1.0 Released (2026-11-02)). Whether the formatter is in v0.1 is open.
+The Python builder (Python Builder) must produce the same tree as the parser, so the nodes can be constructed directly: `Block("Bar", [Property("Edge", Word("TOP"))])`. A constructed node has no position. `tess_dl.dumps` formats a constructed tree with the library's standard layout (two-space indent). `node.canonical()` returns a normalised plain structure with trivia and positions dropped, so a parity test compares two trees by `==`. Names follow TEL's `canonical` (Expression Language Requirements > TEL 0.1.0 Released (2026-11-02)). Whether the formatter is in v0.1 is open.
 
 ### Wording and Familiar Names
 
@@ -138,8 +138,8 @@ None. The only inputs are the arguments above and the `Limits`.
 
 | Item | Value |
 |---|---|
-| Import | `import tdl`; every public name is in `tdl.__all__` |
-| Version | `tdl.__version__` (package) and `tdl.LANGUAGE_VERSION` (`"0.1"`); a file with a newer major version raises `tdl-unsupported-version` |
+| Import | `import tess_dl`; every public name is in `tess_dl.__all__` |
+| Version | `tess_dl.__version__` (package) and `tess_dl.LANGUAGE_VERSION` (`"0.1"`); a file with a newer major version raises `tdl-unsupported-version` |
 | Python | 3.14 or later; no runtime dependencies (maintainer, 2026-11-02) |
 | Typing | Fully typed; ships `py.typed` |
 | Threads | Pure functions on immutable data: safe to call from any thread; the shell may parse on the watcher thread and hand the `Document` to the loop with `call_soon` (Process Model and Threading) |
@@ -148,10 +148,10 @@ None. The only inputs are the arguments above and the `Limits`.
 
 ## Integration
 
-- The shell calls `tdl.parse` for every file at load, collects the errors, then walks the tree with its schema (Validation and Errors).
+- The shell calls `tess_dl.parse` for every file at load, collects the errors, then walks the tree with its schema (Validation and Errors).
 - The shell calls `document.with_metadata("UID", uuid)` and writes the result with its own file code when it registers a file (Config Discovery and Registry).
 - TEL receives `slot.text` and an origin built from `slot.text_origin`; the shell adds nothing to the position because a slot sits on one line (Validation and Errors).
-- A TextMate grammar and any later editor tool use `tdl.parse` and the codes.
+- A TextMate grammar and any later editor tool use `tess_dl.parse` and the codes.
 
 ## Design
 
@@ -189,16 +189,16 @@ Error messages are plain sentences that a screen reader reads whole: no colour o
 
 ## Acceptance Criteria
 
-- [x] `tdl.dumps(tdl.loads(text)) == text` for every file in the conformance corpus (comments, blank lines, indentation, a final newline or none). *Tests:* `test_corpus.py::test_ok_case_round_trips_byte_for_byte` (54 files), `test_roundtrip.py` (generated files).
+- [x] `tess_dl.dumps(tess_dl.loads(text)) == text` for every file in the conformance corpus (comments, blank lines, indentation, a final newline or none). *Tests:* `test_corpus.py::test_ok_case_round_trips_byte_for_byte` (54 files), `test_roundtrip.py` (generated files).
 - [x] The 22 error codes each have a corpus file that raises it with the stated `line` and `column`. *Tests:* `test_corpus_files.py::test_every_code_has_a_case`, `test_corpus.py::test_error_case_loads_raises_the_first_listed_error` and `..._load_raises_the_same_first_error`; `tdl-too-large` and `tdl-too-deep` are built in `test_limits.py`.
 - [x] `Width 32` raises `tdl-unexpected-text`, pointing at the first character that does not fit. *Tests:* corpus case `errors/unexpected-text-no-colon`; `test_acceptance.py`.
-- [x] `tdl.parse` on a file with six deliberate mistakes returns six errors with the right positions (JSON Schema and Editor Support). *Test:* corpus case `errors/six-mistakes` through `test_error_case_parse_lists_every_listed_error`.
+- [x] `tess_dl.parse` on a file with six deliberate mistakes returns six errors with the right positions (JSON Schema and Editor Support). *Test:* corpus case `errors/six-mistakes` through `test_error_case_parse_lists_every_listed_error`.
 - [x] `with_metadata("UID", x)` puts `UID` directly after the last version field and changes no other byte. *Tests:* corpus cases `edits/uid-after-last-version`, `uid-after-tdl-only`; `test_edits.py` (one changed span, generated files).
 - [x] `Color: #fff` raises `tdl-bare-hash`; `Color: "#fff"   # note` is a `String` and a `Comment`. *Tests:* `test_acceptance.py`; corpus cases `errors/bare-hash`, `strings/hash-and-comment`.
 - [x] `Text: {{ max(a, b) }}` is one `Slot` with text ` max(a, b) `; `{{ '}}' }}` ends at the second `}}`; `{{ {'a': {'b': 1}} }}` ends at the first `}}` and leaves the rest to TEL. *Tests:* `test_acceptance.py`; corpus cases `slots/one-slot`, `slots/quoted-close`, `errors/slot-ends-at-first-close`.
 - [x] `}}` where two blocks close raises `tdl-double-close` and the hint says `} }`. *Tests:* `test_acceptance.py`; corpus case `errors/double-close`.
 - [x] A file at 1 MiB parses within the budget; one byte over raises `tdl-too-large`. *Tests:* `test_limits.py` (exact size, one byte more, growth ratio); the measured time is in [benchmarks.md](benchmarks.md).
-- [x] Importing `tdl` imports no other third-party package, and `tdl.__all__` lists every public name. *Tests:* `test_acceptance.py` (a clean interpreter with `-I`, and the list of public names).
+- [x] Importing `tess_dl` imports no other third-party package, and `tess_dl.__all__` lists every public name. *Tests:* `test_acceptance.py` (a clean interpreter with `-I`, and the list of public names).
 - [ ] A tree built in code and the same file parsed give equal `canonical()` results. *Not in 0.1:* building a tree in code, the formatter and `canonical()` on such a tree wait for open question 3 (G26); `canonical()` on a parsed document is in 0.1.
 
 ## Links

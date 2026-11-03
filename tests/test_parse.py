@@ -4,7 +4,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-import tdl
+import tess_dl
 from layouts import HEAD, OK_TEXTS, SOUP, files
 
 
@@ -31,19 +31,19 @@ ANY_TEXT = st.one_of(
 @settings(max_examples=500, deadline=None)
 @given(ANY_TEXT)
 def test_parse_never_raises_and_lists_errors_in_source_order_within_the_cap(text):
-    result = tdl.parse(text)
+    result = tess_dl.parse(text)
     assert len(result.errors) <= 50
     assert offsets(result.errors) == sorted(offsets(result.errors))
-    assert all(isinstance(e, tdl.TDLSyntaxError) for e in result.errors)
+    assert all(isinstance(e, tess_dl.TDLSyntaxError) for e in result.errors)
 
 
 @settings(max_examples=500, deadline=None)
 @given(ANY_TEXT)
 def test_parse_agrees_with_loads(text):
-    result = tdl.parse(text)
+    result = tess_dl.parse(text)
     try:
-        doc = tdl.loads(text)
-    except tdl.TDLSyntaxError as error:
+        doc = tess_dl.loads(text)
+    except tess_dl.TDLSyntaxError as error:
         # loads stops at the first mistake it meets; parse lists that mistake too
         assert (error.code, error.origin.line, error.origin.column) in triples(result.errors)
     else:
@@ -54,16 +54,16 @@ def test_parse_agrees_with_loads(text):
 @settings(max_examples=200, deadline=None)
 @given(files())
 def test_a_valid_file_parses_to_the_same_document_with_no_errors(text):
-    result = tdl.parse(text, path="a.tdl")
+    result = tess_dl.parse(text, path="a.tdl")
     assert result.errors == ()
-    assert result.document == tdl.loads(text, path="a.tdl")
+    assert result.document == tess_dl.loads(text, path="a.tdl")
 
 
 @settings(max_examples=200, deadline=None)
 @given(ANY_TEXT, st.integers(1, 6))
 def test_the_cap_is_honoured_and_the_last_entry_says_so(text, cap):
-    full = tdl.parse(text).errors
-    capped = tdl.parse(text, limits=tdl.Limits(max_errors=cap)).errors
+    full = tess_dl.parse(text).errors
+    capped = tess_dl.parse(text, limits=tess_dl.Limits(max_errors=cap)).errors
     assert len(capped) <= cap
     if len(full) > cap:
         assert len(capped) == cap
@@ -79,20 +79,20 @@ def mistakes(n: int) -> str:
 
 
 def test_sixty_mistakes_give_fifty_errors_and_the_last_says_so():
-    errors = tdl.parse(mistakes(60)).errors
+    errors = tess_dl.parse(mistakes(60)).errors
     assert len(errors) == 50
     assert "50" in errors[-1].message
     assert [e.origin.line for e in errors] == list(range(6, 56))
 
 
 def test_exactly_fifty_mistakes_are_listed_without_a_cap_note():
-    errors = tdl.parse(mistakes(50)).errors
+    errors = tess_dl.parse(mistakes(50)).errors
     assert len(errors) == 50
     assert "The list stops" not in errors[-1].message
 
 
 def test_no_work_is_done_after_the_cap(monkeypatch):
-    from tdl import _parser
+    from tess_dl import _parser
 
     calls = []
     original = _parser._Reader.error
@@ -102,7 +102,7 @@ def test_no_work_is_done_after_the_cap(monkeypatch):
         return original(self, *args, **kwargs)
 
     monkeypatch.setattr(_parser._Reader, "error", counting)
-    tdl.parse(mistakes(5000))
+    tess_dl.parse(mistakes(5000))
     assert len(calls) == 51  # fifty kept and the one that showed there were more
 
 
@@ -111,7 +111,7 @@ def test_the_best_tree_leaves_out_only_the_entries_with_mistakes():
         HEAD
         + 'Shell {\n  Width 32\n  Height: 1\n  Color: #fff\n  Text: "abc\n  Label { Name: ok }\n}\n'
     )
-    result = tdl.parse(text)
+    result = tess_dl.parse(text)
     assert [e.code for e in result.errors] == [
         "tdl-unexpected-text",
         "tdl-bare-hash",
@@ -128,14 +128,14 @@ def test_the_best_tree_leaves_out_only_the_entries_with_mistakes():
 
 
 def test_a_bad_entry_on_the_closing_line_does_not_swallow_the_closing_brace():
-    result = tdl.parse(HEAD + "Shell { Color: #fff }\n")
+    result = tess_dl.parse(HEAD + "Shell { Color: #fff }\n")
     assert triples(result.errors) == [("tdl-bare-hash", 5, 16)]
     assert result.document is not None and result.document.root.entries == ()
 
 
 def test_metadata_mistakes_are_all_listed_and_the_body_is_still_read():
     text = "---\nName: 1st\nName: x\nTitle\n---\nShell {\n  Width 32\n}\n"
-    result = tdl.parse(text)
+    result = tess_dl.parse(text)
     assert triples(result.errors) == [
         ("tdl-no-version", 1, 1),
         ("tdl-bad-name", 2, 7),
@@ -165,26 +165,28 @@ def test_metadata_mistakes_are_all_listed_and_the_body_is_still_read():
 def test_errors_outside_a_block_are_recovered_where_a_tree_can_still_be_built(
     text, codes, has_document
 ):
-    result = tdl.parse(text)
+    result = tess_dl.parse(text)
     assert [e.code for e in result.errors] == codes
     assert (result.document is not None) == has_document
 
 
 def test_a_double_close_is_reported_once_and_closes_both_blocks():
-    result = tdl.parse(HEAD + "Shell {\n  Bar {\n    Width: 1\n  }}\n")
+    result = tess_dl.parse(HEAD + "Shell {\n  Bar {\n    Width: 1\n  }}\n")
     assert triples(result.errors) == [("tdl-double-close", 8, 3)]
     assert result.document is not None
     assert result.document.canonical()["root"]["entries"][0]["block"] == "Bar"
 
 
 def test_limit_errors_stop_the_file_with_one_error_and_no_tree():
-    big = tdl.parse(HEAD + "Shell {\n" + "# x\n" * 100 + "}\n", limits=tdl.Limits(max_bytes=100))
+    big = tess_dl.parse(
+        HEAD + "Shell {\n" + "# x\n" * 100 + "}\n", limits=tess_dl.Limits(max_bytes=100)
+    )
     assert triples(big.errors) == [("tdl-too-large", 1, 1)] and big.document is None
-    deep = tdl.parse(HEAD + "B {\n" * 70 + "}\n" * 70)
+    deep = tess_dl.parse(HEAD + "B {\n" * 70 + "}\n" * 70)
     assert triples(deep.errors) == [("tdl-too-deep", 69, 3)] and deep.document is None
-    bad = tdl.parse(HEAD + "Shell { Text: a\ud800 }\n")
+    bad = tess_dl.parse(HEAD + "Shell { Text: a\ud800 }\n")
     assert [e.code for e in bad.errors] == ["tdl-bad-encoding"] and bad.document is None
 
 
 def test_a_text_that_is_not_utf8_is_one_error_and_still_never_raises():
-    assert tdl.parse("\ud800").errors[0].code == "tdl-bad-encoding"
+    assert tess_dl.parse("\ud800").errors[0].code == "tdl-bad-encoding"

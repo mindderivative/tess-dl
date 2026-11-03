@@ -38,7 +38,7 @@ _WORDS: dict[str, tuple[str, str]] = {
     "tdl-too-deep": ("Blocks are nested deeper than the limit.", "Flatten the nesting"),
     "tdl-unsupported-version": (
         "This file needs a newer TDL than this library reads.",
-        "Use a newer tdl",
+        "Use a newer tesserae-dl",
     ),
     "tdl-bad-encoding": ("The bytes are not valid UTF-8.", "Save the file as UTF-8"),
 }

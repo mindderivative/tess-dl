@@ -4,6 +4,17 @@ All notable changes to the package. Versions follow [Semantic Versioning](https:
 1.0 a minor version may break the API. The language version is separate and is 0.1 for every release
 here (`docs/versioning.md`).
 
+## Unreleased
+
+### Breaking: the import name is `tess_dl`
+
+The package is now imported as `tess_dl`, to avoid a clash with another project's top-level `tdl`.
+The PyPI name is unchanged (`pip install tesserae-dl`). To migrate, change `import tdl` to
+`import tess_dl` and `tdl.` to `tess_dl.` (or `import tess_dl as tdl`). There is no `tdl` alias.
+
+Unchanged: the error codes (`tdl-unclosed-block` and the rest), the `.tdl` file extension and the
+language itself. The hint of `tdl-unsupported-version` now says to use a newer `tesserae-dl`.
+
 ## 0.1.0
 
 The first release: everything in the first-slice plan, steps 1 to 8.

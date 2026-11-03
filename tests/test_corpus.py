@@ -1,6 +1,6 @@
 """The conformance corpus runner: one parametrised test per case in `tests/corpus/`.
 
-`tdl` is imported inside each test so the corpus can be collected before the package exists.
+`tess_dl` is imported inside each test so the corpus can be collected before the package exists.
 Files are read as bytes: CRLF, BOM and invalid UTF-8 are part of the cases.
 """
 
@@ -49,23 +49,23 @@ def same(actual, expected):
 
 @pytest.mark.parametrize(("area", "case", "path"), OK, ids=ids(OK))
 def test_ok_case_reads_to_the_canonical_tree(area, case, path):
-    import tdl
+    import tess_dl
 
     text = read(path).decode("utf-8")
     expected = json.loads(path.read_text("utf-8"))
-    doc = tdl.loads(text, path=f"{area}/{case}.tdl")
+    doc = tess_dl.loads(text, path=f"{area}/{case}.tdl")
     assert same(doc.canonical(), expected["canonical"])
 
 
 @pytest.mark.parametrize(("area", "case", "path"), OK, ids=ids(OK))
 def test_ok_case_round_trips_byte_for_byte(area, case, path):
-    import tdl
+    import tess_dl
 
     data = read(path)
     text = data.decode("utf-8")
-    doc = tdl.loads(text, path=f"{area}/{case}.tdl")
-    assert tdl.dumps(doc) == text
-    assert tdl.dumps(tdl.load(io.BytesIO(data))) == text
+    doc = tess_dl.loads(text, path=f"{area}/{case}.tdl")
+    assert tess_dl.dumps(doc) == text
+    assert tess_dl.dumps(tess_dl.load(io.BytesIO(data))) == text
 
 
 def wanted(path):
@@ -82,11 +82,11 @@ TEXT_ERRORS = [r for r in ERRORS if r[1] != "bad-encoding"]
 @pytest.mark.parametrize(("area", "case", "path"), TEXT_ERRORS, ids=ids(TEXT_ERRORS))
 def test_error_case_loads_raises_the_first_listed_error(area, case, path):
     """Step 4: `loads` stops at the first mistake with its code, position and related origins."""
-    import tdl
+    import tess_dl
 
     expected = wanted(path)[0]
-    with pytest.raises(tdl.TDLSyntaxError) as raised:
-        tdl.loads(read(path).decode("utf-8"), path=f"{area}/{case}.tdl")
+    with pytest.raises(tess_dl.TDLSyntaxError) as raised:
+        tess_dl.loads(read(path).decode("utf-8"), path=f"{area}/{case}.tdl")
     error = raised.value
     assert first(error) == (expected["code"], expected["line"], expected["column"])
     assert related(error) == [(r["line"], r["column"]) for r in expected.get("related", [])]
@@ -100,11 +100,11 @@ def test_error_case_loads_raises_the_first_listed_error(area, case, path):
 @pytest.mark.parametrize(("area", "case", "path"), ERRORS, ids=ids(ERRORS))
 def test_error_case_load_raises_the_same_first_error(area, case, path):
     """Step 5: `load` reads bytes, so it also covers `bad-encoding`."""
-    import tdl
+    import tess_dl
 
     expected = wanted(path)[0]
-    with pytest.raises(tdl.TDLSyntaxError) as raised:
-        tdl.load(io.BytesIO(read(path)))
+    with pytest.raises(tess_dl.TDLSyntaxError) as raised:
+        tess_dl.load(io.BytesIO(read(path)))
     assert first(raised.value) == (expected["code"], expected["line"], expected["column"])
     assert related(raised.value) == [(r["line"], r["column"]) for r in expected.get("related", [])]
 
@@ -112,10 +112,10 @@ def test_error_case_load_raises_the_same_first_error(area, case, path):
 @pytest.mark.parametrize(("area", "case", "path"), TEXT_ERRORS, ids=ids(TEXT_ERRORS))
 def test_error_case_parse_lists_every_listed_error(area, case, path):
     """Step 7: `parse` returns the whole list, in source order."""
-    import tdl
+    import tess_dl
 
     expected = wanted(path)
-    errors = tdl.parse(read(path).decode("utf-8")).errors
+    errors = tess_dl.parse(read(path).decode("utf-8")).errors
     assert [first(e) for e in errors] == [(e["code"], e["line"], e["column"]) for e in expected]
     assert [related(e) for e in errors] == [
         [(r["line"], r["column"]) for r in e.get("related", [])] for e in expected
@@ -137,17 +137,17 @@ def apply(doc, edit):
 
 @pytest.mark.parametrize(("area", "case", "path"), EDITS, ids=ids(EDITS))
 def test_edit_case_changes_only_what_it_must(area, case, path):
-    import tdl
+    import tess_dl
 
     text = read(path).decode("utf-8")
     expected = json.loads(path.read_text("utf-8"))
-    doc = tdl.loads(text)
+    doc = tess_dl.loads(text)
     if "raises" in expected:
-        with pytest.raises(tdl.TDLError) as raised:
+        with pytest.raises(tess_dl.TDLError) as raised:
             apply(doc, expected["edit"])
         assert raised.value.code == expected["raises"]
-        assert tdl.dumps(doc) == text
+        assert tess_dl.dumps(doc) == text
     else:
         result = apply(doc, expected["edit"])
-        assert tdl.dumps(result) == read(path, ".result.tdl").decode("utf-8")
-        assert tdl.dumps(doc) == text
+        assert tess_dl.dumps(result) == read(path, ".result.tdl").decode("utf-8")
+        assert tess_dl.dumps(doc) == text

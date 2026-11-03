@@ -1,8 +1,8 @@
 """TDL, the Tesserae Data Language: reads a TDL file into a tree that keeps everything in it.
 
-import tdl
+import tess_dl
 
-doc = tdl.loads(text, path="Main_Shell.tdl")   # raises TDLSyntaxError on the first mistake
+doc = tess_dl.loads(text, path="Main_Shell.tdl")   # raises TDLSyntaxError on the first mistake
 doc.root.type                                   # the root block's head word
 """
 

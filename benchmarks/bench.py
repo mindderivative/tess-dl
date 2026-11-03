@@ -1,4 +1,4 @@
-"""Timing and memory of the `tdl` reader against the budget (docs/api.md, "Performance Budget").
+"""Timing and memory of the `tess_dl` reader against the budget (docs/api.md, "Performance Budget").
 
 Standard library only; not shipped, and nothing under `src/` imports it.
 
@@ -16,7 +16,7 @@ import sys
 import time
 import tracemalloc
 
-import tdl
+import tess_dl
 
 BUDGET_100K = 0.020  # seconds for a 100 KB file
 BUDGET_1M = 0.250  # seconds for a file at the 1 MiB limit
@@ -63,7 +63,9 @@ def realistic(size: int) -> str:
         i += 1
     parts.append("}\n")
     text = "".join(parts)
-    errors = tdl.parse(text).errors  # a malformed input would time the error path, not the reader
+    errors = tess_dl.parse(
+        text
+    ).errors  # a malformed input would time the error path, not the reader
     assert errors == (), f"the benchmark input is not valid TDL: {errors[0]}"
     return text
 
@@ -102,7 +104,7 @@ def tree_bytes(text: str) -> int:
     """Memory the tree keeps after parsing (what `loads` returns), in bytes."""
     gc.collect()
     tracemalloc.start()
-    doc = tdl.loads(text)
+    doc = tess_dl.loads(text)
     kept, _ = tracemalloc.get_traced_memory()
     tracemalloc.stop()
     del doc
@@ -115,10 +117,10 @@ def ms(seconds: float) -> str:
 
 def report(name: str, text: str, runs: int) -> float:
     size = len(text.encode("utf-8"))
-    load = best(lambda: tdl.loads(text), runs)
-    parse = best(lambda: tdl.parse(text), runs)
-    doc = tdl.loads(text)
-    dump = best(lambda: tdl.dumps(doc), runs)
+    load = best(lambda: tess_dl.loads(text), runs)
+    parse = best(lambda: tess_dl.parse(text), runs)
+    doc = tess_dl.loads(text)
+    dump = best(lambda: tess_dl.dumps(doc), runs)
     edit = best(lambda: doc.with_metadata("UID", "0192d3c4-0000-7000-8000-000000000001"), runs)
     kept = tree_bytes(text)
     print(
@@ -131,8 +133,8 @@ def report(name: str, text: str, runs: int) -> float:
 
 def attempt(text: str):
     try:
-        return tdl.loads(text)
-    except tdl.TDLError:
+        return tess_dl.loads(text)
+    except tess_dl.TDLError:
         return None  # an adversarial input may be refused; the time to refuse is what counts
 
 
@@ -140,7 +142,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--runs", type=int, default=15, help="timed runs per input (best is kept)")
     runs = parser.parse_args().runs
-    print(f"Python {platform.python_version()} on {platform.machine()}, tdl {tdl.__version__}")
+    print(
+        f"Python {platform.python_version()} on {platform.machine()}, tess_dl {tess_dl.__version__}"
+    )
     print(f"best of {runs} timed runs after one warm-up, GC off while timing\n")
 
     print("Realistic files")
@@ -151,7 +155,7 @@ def main() -> int:
     base = None
     for factor in (1, 2, 4):
         text = realistic(100_000 * factor)
-        load = best(lambda t=text: tdl.loads(t), runs)
+        load = best(lambda t=text: tess_dl.loads(t), runs)
         base = base or load
         size = f"{len(text):>9,} B"
         print(f"{factor}x ({size})  {ms(load)} ms   x{load / base:4.2f} (linear: x{factor})")
@@ -160,14 +164,14 @@ def main() -> int:
     inner = max(3, runs // 3)
     for name, text in adversarial(1_000_000).items():
         took = best(lambda t=text: attempt(t), inner)
-        parsed = best(lambda t=text: tdl.parse(t), inner)
+        parsed = best(lambda t=text: tess_dl.parse(t), inner)
         print(f"{name:<26}{len(text):>10,} B  loads {ms(took)} ms  parse {ms(parsed)} ms")
 
     print("\nAdversarial scaling: parse time at 250 KB, 500 KB, 1 MB (linear: x2 per doubling)")
     flagged = []
     inputs = {size: adversarial(size) for size in SIZES}
     for name in inputs[SIZES[0]]:
-        times = [best(lambda t=inputs[s][name]: tdl.parse(t), inner) for s in SIZES]
+        times = [best(lambda t=inputs[s][name]: tess_dl.parse(t), inner) for s in SIZES]
         r1, r2 = times[1] / times[0], times[2] / times[1]
         slow = max(r1, r2) > 3.0 and times[2] > 0.005  # tiny times are noise
         if slow:
