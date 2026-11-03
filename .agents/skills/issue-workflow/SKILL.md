@@ -18,7 +18,7 @@ The board is the GitHub project "Tesserae Data Language" (project 5; `python3 to
 ## 1. Understand before changing
 
 - Read the notes the step needs (the First Slice note names them: `TDL Library API`, `TDL Language`, ADR-0014 D-numbers). If the vault and `docs/` in this repo disagree, `docs/` wins once it exists (D66); say what differs and raise a `TDL-REQ-###` with the maintainer.
-- State the expected behaviour in one sentence. **Language syntax is the user's call**: lay out options with a recommendation (the 12 open grammar questions are in the First Slice note), do not settle it silently. A settled answer goes in `docs/decisions.md` with its reason.
+- State the expected behaviour in one sentence. For the 12 grammar questions in the First Slice note, follow `grammar-first` (take the recommendation, record it); **new syntax beyond them, or a departure from a recommendation, goes to the user** with options and a pick. Every settled answer goes in `docs/decisions.md` with its reason.
 
 ## 2. Test first, and show it tests something
 

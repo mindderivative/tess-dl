@@ -15,13 +15,11 @@ The grammar is written before the parser (order of work, step 1) and `docs/langu
 
 ## Settling an ambiguity
 
-The 12 open questions are in the First Slice note ("Ambiguities to Settle in the Grammar"). Each has a recommendation, but **the answer is the maintainer's call**:
+The 12 open questions are in the First Slice note ("Ambiguities to Settle in the Grammar"). Each has a recommendation, and **the `tess-dl` session decides** and records the answer (the note says so); every one needs an answer before the parser is written (acceptance criterion):
 
-1. State the question, the options, and the recommendation with its reason.
-2. Ask. Do not write the parser to a guess.
-3. Record the answer in `docs/decisions.md` (a numbered row: decision, reason) and in `docs/language.md`; add the corpus cases it makes possible.
-
-Settled by the vault already (do not reopen): values are lexical, the schema types them (D74); the suffix check belongs to the shell (D91, so 17 language errors); `{{ }}` is a slot and its text is TEL's; a slot is on one line (D54).
+1. Take the recommendation unless there is a concrete reason not to. State the reason if you depart from it.
+2. Record the answer in `docs/decisions.md` (a numbered row: decision, reason) and in `docs/language.md`, and add the corpus cases it makes possible.
+3. Bring to the user only a **departure from the recommendation**, or anything that changes what an existing document means, with the options and your pick: new syntax is not settled silently.
 
 ## Error wording
 
