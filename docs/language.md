@@ -2,7 +2,7 @@
 
 TDL is a structure-only data language: blocks, properties and values. It does not know what a bar, a monitor or a colour is. The program that reads a file (the Tesserae Shell, Tesserae UI) decides which blocks and keys it accepts and what a value means. Expressions belong to TEL: TDL only marks where one starts and ends.
 
-This page is the reference for what the `tdl` library reads. Each section shows an example first, then the rule. Where TDL behaves differently from CSS, QML or Flutter, a note says so. Rules that are not settled are marked **(proposed)** and listed in [decisions.md](decisions.md) under "Open". Errors the 17 codes do not cover (Q1), a bare `#` in a value (Q2), slots in quoted strings (Q3) and empty values (Q4) are open too.
+This page is the reference for what the `tdl` library reads. Each section shows an example first, then the rule. Where TDL behaves differently from CSS, QML or Flutter, a note says so. The reasons for the choices are in [decisions.md](decisions.md) (rows G1 to G18).
 
 Status: draft for the first slice. Every example here becomes a case in `tests/corpus/`.
 
@@ -54,7 +54,7 @@ Color: "#1e1e1e"   # the # inside the quotes is part of the string
 
 A `#` starts a comment when it is the first thing on a line or follows whitespace. The comment runs to the end of the line. A `#` inside a quoted string or inside a slot is not a comment. A `#` with no whitespace before it (`a#b`) is part of the word.
 
-One case needs care: where a value is expected, a `#` followed directly by a non-space character (`Color: #fff`) is not a comment but the error `tdl-bare-hash`; a `#` followed by whitespace or the end of the line (`Color: # note`) is a comment. **(proposed, Q2)**
+One case needs care: where a value is expected, a `#` followed directly by a non-space character (`Color: #fff`) is not a comment but the error `tdl-bare-hash`; a `#` followed by whitespace or the end of the line (`Color: # note`) is a comment. (G14)
 
 *Differs from CSS:* there is no `/* */` and no `//`.
 
@@ -153,7 +153,7 @@ Path: 'C:\\Users'
 Mark: "\u00e9"
 ```
 
-`"…"` and `'…'` are the same. A string must close on the line it opens (`tdl-unclosed-string`). These escapes are valid: `\\` `\"` `\'` `\n` `\t` and `\u` followed by four hex digits. Any other `\x` is `tdl-bad-escape`. (G5) The value of the string has the escapes resolved; its text is kept as written.
+`"…"` and `'…'` are the same. A string must close on the line it opens (`tdl-unclosed-string`). A `{{` inside quotes is plain text, not a slot. (G15) These escapes are valid: `\\` `\"` `\'` `\n` `\t` and `\u` followed by four hex digits. Any other `\x` is `tdl-bad-escape`. (G5) The value of the string has the escapes resolved; its text is kept as written.
 
 A colour with `#` needs quotes: `Color: "#ffffff"`. `Color: #fff` is `tdl-bare-hash` (hint: write `"#ffffff"`).
 
@@ -221,8 +221,8 @@ For item In {{ items }} Key {{ item.id }} {
 }
 ```
 
-- `If {{ condition }} { … }` may be followed by `Else { … }`. There is no `Else If`: nest an `If` inside the `Else`. (Where `Else` may sit relative to the closing brace is **proposed**, Q5.)
-- `For variable In {{ items }} Key {{ key }} { … }`. The variable follows the names rule. `Key` is required: it gives each entry its identity.
+- `If {{ condition }} { … }` may be followed by `Else { … }`. There is no `Else If`: nest an `If` inside the `Else`. `Else` follows the closing brace of the `If` body, on the same line or after newlines and comments. (G17) An `Else` with no `If` is `tdl-unexpected-text`.
+- `For variable In {{ items }} Key {{ key }} { … }`. The variable follows the names rule. `In` and `Key` are required (`Key` gives each entry its identity); leaving either out is `tdl-unexpected-text`.
 - Their bodies hold entries like any block.
 - `If`, `Else`, `For`, `In` and `Key` are special only where a key or entry is expected (they are fine inside an unquoted word or a string).
 
@@ -248,11 +248,21 @@ Every error has a stable `code`, a one-sentence message in plain words, a hint t
 | `tdl-bad-escape` | A `\` followed by something that is not an escape | Use a valid escape or write `\\` | The backslash |
 | `tdl-duplicate-key` | A property key twice in one block (or metadata) | Remove one; the message names both places | The second key; the first is a related origin |
 | `tdl-bare-hash` | A value that starts with `#` outside quotes | Quote the colour: `"#ffffff"` | The `#` |
+| `tdl-unexpected-text` | Text that is not valid where it stands: a key with no `:` or no value, an `Else` with no `If`, a `For` without `In` or `Key`, an unclosed `(` in a call, a stray `{` in an unquoted value | The hint says what that spot needs, for example `Write Key: value` | The first character that does not fit |
 | `tdl-reserved-name` | A block head or `Name:` that is `If`, `Else`, `For`, `In` or `Key` | Choose another name | The word |
 
-Those are the 17 language errors. Checking the root block against the file name is not TDL's job: the program that reads the file does that.
+Those are the 18 language errors. Checking the root block against the file name is not TDL's job: the program that reads the file does that.
 
-The library also stops a file that is too big (more than 1 MiB), has more than 50 errors, or nests deeper than 64 levels. The codes for those are **proposed** (`tdl-too-large`, `tdl-too-deep`); see decisions.md.
+Four more codes report what the library will not read at all. Each stops the file with one error:
+
+| Code | When | Hint |
+|---|---|---|
+| `tdl-too-large` | The text is longer than 1 MiB (checked before any parsing) | Split the file |
+| `tdl-too-deep` | Blocks, bodies and lists nest deeper than 64 levels | Flatten the nesting |
+| `tdl-unsupported-version` | The `TDL:` version is newer than this library's | Use a newer `tdl` |
+| `tdl-bad-encoding` | The bytes are not valid UTF-8 (`load` only; the message gives the byte offset) | Save the file as UTF-8 |
+
+The error list stops at 50 errors; the last entry says so.
 
 ## Where TDL differs
 

@@ -2,7 +2,7 @@
 
 Decisions made for the language and the library, newest last. The reason is kept with each one. Syntax, grammar and boundary changes are recorded here, in this repo, not left in the vault.
 
-`G` rows answer the 12 grammar ambiguities of the First Slice note (vault: `41 TDL Reference/tess-dl First Slice.md`). The note leaves them to the `tess-dl` session: each takes the note's recommendation unless the Notes column says otherwise. `Q` rows are open questions for the maintainer.
+`G` rows answer the 12 grammar ambiguities of the First Slice note (vault: `41 TDL Reference/tess-dl First Slice.md`). The note leaves them to the `tess-dl` session: each takes the note's recommendation unless the Notes column says otherwise. The maintainer answered the open questions on 2026-11-02; they are G13 to G18.
 
 ## 2026-11-02 (grammar, plan step 1)
 
@@ -20,14 +20,11 @@ Decisions made for the language and the library, newest last. The reason is kept
 | G10 | **Key characters:** a letter, then letters, digits and `_`. The same rule serves block heads, `For` variables and `Name:` values. | D4 forbids numeric keys. One rule for every name keeps `tdl-bad-name` simple. |
 | G11 | **Maximum nesting depth is 64**, counting the root block as 1; blocks, `If`/`For` bodies and lists each add a level. | Proposed by the note. A stack-safe parser must reach it without a `RecursionError`. |
 | G12 | **Trivia is kept in source spans, not modelled.** Comments are entries in their block in source order; blank lines and indentation live in the spans between nodes. | Keeps the tree small and makes the exact round trip a property of the spans (`lossless-roundtrip`). |
+| G13 | **One more language code: `tdl-unexpected-text`**, for text that is not valid where it stands: a missing colon (`Width 32`), a key with no value, an `Else` with no `If`, a `For` without `In` or `Key`, an unclosed `(` in a call, a stray `{` in an unquoted value. The message and hint say which case. | Answers Q1 (maintainer, 2026-11-02). It makes 18 language errors; the vault's "17" and its `TDL Language` error table need the new row. |
+| G14 | **In value position, a `#` followed directly by a non-space character is `tdl-bare-hash`;** a `#` followed by whitespace or the end of the line is a comment. | Answers Q2 (maintainer). `Color: #fff` is an error; `Color: # note` is an empty value (G16) and a comment. |
+| G15 | **`{{ }}` inside a quoted string is plain text.** A quoted string never holds a slot; a template is written unquoted. | Answers Q3 (maintainer). Quotes switch slots off. |
+| G16 | **A property with no value is an error** (`tdl-unexpected-text`). | Answers Q4 (maintainer). |
+| G17 | **`Else` follows the `If` body's closing brace,** on the same line or after newlines and comments. | Answers Q5 (maintainer). |
+| G18 | **The four extra codes are accepted:** `tdl-too-large` (over 1 MiB, checked before parsing), `tdl-too-deep` (over 64 levels), `tdl-unsupported-version` (the `TDL:` version is newer than the library's), `tdl-bad-encoding` (invalid UTF-8 in `load`, with the byte offset). | Answers Q6 (maintainer). Together with G13 the library has 22 codes. |
 
-## Open
-
-| # | Question | Recommendation |
-|---|---|---|
-| Q1 | **The 17 codes do not cover every syntax mistake.** Nothing names `Width 32` (no colon), a key with no value, an `Else` with no `If`, a `For` with no `In` or `Key`, an unclosed `(` in a call, or a stray `{` in an unquoted value. What does the library report for these? | One more code for "this is not valid here" (working name `tdl-unexpected-text`), with a per-case message and hint. It is new language surface, so the code is the maintainer's to approve. Until then `parse` cannot recover from these cases with a code. |
-| Q2 | **`Color: #fff` versus `Key: # note`.** A `#` after whitespace starts a comment, yet `Color: #fff` must be `tdl-bare-hash`. | In value position, a `#` followed directly by a non-space character is `tdl-bare-hash`; a `#` followed by whitespace or the end of the line is a comment. |
-| Q3 | **Is `{{ }}` a slot inside a quoted string** (`"Battery {{ x }}%"`), or plain text? | Plain text: a quoted string never holds a slot, so quotes are a way to switch slots off. A template is written unquoted. |
-| Q4 | **Is a property with no value (`Key:` then a line end) valid?** | An error covered by Q1's new code. |
-| Q5 | **Where may `Else` sit?** | After the `If` body's closing brace, on the same line or after newlines and comments. |
-| Q6 | **The extra codes** `tdl-unsupported-version`, `tdl-too-large`, `tdl-too-deep`, `tdl-bad-encoding` (TDL Library API, open question 5). | Accept all four: each is a limit or input the library must report somehow. |
+No questions are open.
