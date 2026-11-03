@@ -2,7 +2,7 @@
 
 TDL is a structure-only data language: blocks, properties and values. It does not know what a bar, a monitor or a colour is. The program that reads a file (the Tesserae Shell, Tesserae UI) decides which blocks and keys it accepts and what a value means. Expressions belong to TEL: TDL only marks where one starts and ends.
 
-This page is the reference for what the `tdl` library reads. Each section shows an example first, then the rule. Where TDL behaves differently from CSS, QML or Flutter, a note says so. The reasons for the choices are in [decisions.md](decisions.md) (rows G1 to G18).
+This page is the reference for what the `tdl` library reads. Each section shows an example first, then the rule. Where TDL behaves differently from CSS, QML or Flutter, a note says so. The reasons for the choices are in [decisions.md](decisions.md) (rows G1 to G25).
 
 Status: draft for the first slice. Every example here becomes a case in `tests/corpus/`.
 
@@ -106,7 +106,7 @@ Border {
 - Entries in a block (properties, blocks, `If`, `For`, comments) are separated by a newline or a `,`. A trailing `,` is allowed and never required.
 - The same block word may appear many times in one block. A property key may appear once (`tdl-duplicate-key`; the error names both places).
 - `Children` and `Import` are ordinary words: `Children` is a block, `Import: File.tdl` is a property. Their meaning is the shell's. (G9)
-- Nested blocks close with a space or a newline between the braces: `} }`, never `}}`. `}}` closing two blocks is `tdl-double-close`. A block directly inside a block opens as `{ {` for the same reason: `{{` always opens a slot.
+- Nested blocks close with a space or a newline between the braces: `} }`, never `}}`. An adjacent `}}` outside a slot or a string is `tdl-double-close`, whether or not two blocks are open. A block directly inside a block opens as `{ {` for the same reason: `{{` always opens a slot.
 - A `{` with no `}` before the end of the file is `tdl-unclosed-block`; a `}` with nothing open is `tdl-unexpected-close`.
 - Nesting is limited to 64 levels (the root block is level 1; blocks, `If`/`For` bodies and lists each count). (G11)
 
@@ -203,7 +203,7 @@ A slot starts at `{{` and ends at the first `}}` that is not inside a quoted str
 
 - A slot is on one line. A line end before `}}` is `tdl-unclosed-slot`. (G7)
 - `{{ }}` with nothing but whitespace is `tdl-empty-slot`.
-- A `}}` that is meant to be part of the expression is written `} }`: `{{ {'a': {'b': 1} } }}`. Written `{{ {'a': {'b': 1}} }}`, the slot ends at the first `}}` and the rest is TEL's to report.
+- A slot ends at its first `}}`: in `{{ {'a': {'b': 1}} }}` the slot is ` {'a': {'b': 1` and the trailing `}}` is `tdl-double-close`. (G19)
 
 A value that is exactly one slot is a slot. A value that has text around a slot is a **template**: `Battery {{ battery.percent }}%` is the parts `Battery `, the slot, and `%`, in order.
 
@@ -241,7 +241,7 @@ Every error has a stable `code`, a one-sentence message in plain words, a hint t
 | `tdl-many-roots` | More than one root block | Keep one root block | The head word of the second |
 | `tdl-unclosed-block` | A `{` has no `}` before the end of the file | Add the missing `}` | The opening `{` |
 | `tdl-unexpected-close` | A `}` with no open block | Remove the extra `}` | That `}` |
-| `tdl-double-close` | `}}` where two blocks close | Write `} }` | The `}}` |
+| `tdl-double-close` | A `}}` outside a slot or string | Write `} }` | The first `}` of the `}}` |
 | `tdl-unclosed-slot` | A `{{` with no `}}` on the same line | Close the slot on the same line | The `{{` |
 | `tdl-empty-slot` | A `{{ }}` with nothing in it | Put an expression in the slot | The `{{` |
 | `tdl-unclosed-string` | A quote with no closing quote on the line | Close the string | The opening quote |
@@ -252,6 +252,8 @@ Every error has a stable `code`, a one-sentence message in plain words, a hint t
 | `tdl-reserved-name` | A block head or `Name:` that is `If`, `Else`, `For`, `In` or `Key` | Choose another name | The word |
 
 Those are the 18 language errors. Checking the root block against the file name is not TDL's job: the program that reads the file does that.
+
+Where it points, in detail (G20): `tdl-no-root` at the first character after the closing `---` line, including its line ending. `tdl-unexpected-text` at: the first non-whitespace character after the `:` for a missing value; the first character after the key and its whitespace for a missing `:`; the line end for an unclosed `(`; the `{` that opens the body for a `For` without `Key`; the first `{{` after the variable for a `For` without `In`; the `Else` for an `Else` without `If`; the `{` for a stray `{` in an unquoted value. `tdl-bad-encoding` is placed by counting the valid UTF-8 prefix before the first bad byte (G21).
 
 Four more codes report what the library will not read at all. Each stops the file with one error:
 

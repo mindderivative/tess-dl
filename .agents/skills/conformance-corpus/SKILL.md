@@ -1,6 +1,6 @@
 ---
 name: conformance-corpus
-description: 'Use when adding, changing or running cases in tests/corpus/ (plan step 2 and after): the .tdl + .expect.json case format, the areas, the 17 error codes, edit and limit cases, answering a shell TDL-REQ, and checking a new case fails for the right reason.'
+description: 'Use when adding, changing or running cases in tests/corpus/ (plan step 2 and after): the .tdl + .expect.json case format, the areas, the 22 error codes, edit and limit cases, answering a shell TDL-REQ, and checking a new case fails for the right reason.'
 ---
 
 # The conformance corpus
@@ -24,8 +24,9 @@ One parametrised pytest module walks the folder, so a new case needs no test cod
 
 - `ok`: `loads` succeeds; `canonical()` equals the expectation; `dumps(loads(x)) == x` byte for byte (every `ok` case is a round-trip case).
 - `errors`: `loads` raises `TDLSyntaxError` with the first listed code, line and column; `parse` returns the whole list (up to 50), in source order.
-- `edits`: the case folder holds the input, the call and the expected text; the edit changes no other byte (`lossless-roundtrip`).
+- `edits`: three files per case (G23): `<case>.tdl`, `<case>.expect.json` with `{"edit": {"call": "with_metadata|without_metadata|with_property|replace", ...}}` (a refused edit adds `"raises": "<code>"` and has no result file) and `<case>.result.tdl`, the expected output bytes. The edit changes no other byte (`lossless-roundtrip`).
 - A `.tdl` with no `.expect.json`, or the reverse, fails the run.
+- `tdl-bad-encoding` and BOM/CRLF cases are raw bytes: never open `.tdl` in text mode.
 
 ## The error codes: one minimal file each (18 language codes and 4 limit/input codes)
 
