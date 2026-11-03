@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: false
+      - run: uv sync --python 3.14
+      - run: uv run pytest
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: false
+      - run: uv sync
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: false
+      - run: uv build --out-dir dist
+      - run: uv venv --python 3.14 /tmp/smoke && uv pip install --python /tmp/smoke/bin/python dist/*.whl
+      - run: |
+          cd /tmp && /tmp/smoke/bin/python -I -c "
+          import sys, tdl
+          print(tdl.__version__, tdl.LANGUAGE_VERSION)
+          assert tdl.dumps(tdl.loads('---\nTDL: 0.1\nName: T\n---\nShell { }\n')) == '---\nTDL: 0.1\nName: T\n---\nShell { }\n'
+          own = set(sys.stdlib_module_names) | {'tdl', '__main__'}
+          assert not {m.split('.')[0] for m in sys.modules} - own
+          "

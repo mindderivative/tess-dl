@@ -189,17 +189,17 @@ Error messages are plain sentences that a screen reader reads whole: no colour o
 
 ## Acceptance Criteria
 
-- [ ] `tdl.dumps(tdl.loads(text)) == text` for every file in the conformance corpus (comments, blank lines, indentation, a final newline or none).
-- [ ] The 22 error codes each have a corpus file that raises it with the stated `line` and `column`.
-- [ ] `Width 32` raises `tdl-unexpected-text`, pointing at the first character that does not fit.
-- [ ] `tdl.parse` on a file with six deliberate mistakes returns six errors with the right positions (JSON Schema and Editor Support).
-- [ ] `with_metadata("UID", x)` puts `UID` directly after the last version field and changes no other byte.
-- [ ] `Color: #fff` raises `tdl-bare-hash`; `Color: "#fff"   # note` is a `String` and a `Comment`.
-- [ ] `Text: {{ max(a, b) }}` is one `Slot` with text ` max(a, b) `; `{{ '}}' }}` ends at the second `}}`; `{{ {'a': {'b': 1}} }}` ends at the first `}}` and leaves the rest to TEL.
-- [ ] `}}` where two blocks close raises `tdl-double-close` and the hint says `} }`.
-- [ ] A file at 1 MiB parses within the budget; one byte over raises `tdl-too-large`.
-- [ ] Importing `tdl` imports no other third-party package, and `tdl.__all__` lists every public name.
-- [ ] A tree built in code and the same file parsed give equal `canonical()` results.
+- [x] `tdl.dumps(tdl.loads(text)) == text` for every file in the conformance corpus (comments, blank lines, indentation, a final newline or none). *Tests:* `test_corpus.py::test_ok_case_round_trips_byte_for_byte` (54 files), `test_roundtrip.py` (generated files).
+- [x] The 22 error codes each have a corpus file that raises it with the stated `line` and `column`. *Tests:* `test_corpus_files.py::test_every_code_has_a_case`, `test_corpus.py::test_error_case_loads_raises_the_first_listed_error` and `..._load_raises_the_same_first_error`; `tdl-too-large` and `tdl-too-deep` are built in `test_limits.py`.
+- [x] `Width 32` raises `tdl-unexpected-text`, pointing at the first character that does not fit. *Tests:* corpus case `errors/unexpected-text-no-colon`; `test_acceptance.py`.
+- [x] `tdl.parse` on a file with six deliberate mistakes returns six errors with the right positions (JSON Schema and Editor Support). *Test:* corpus case `errors/six-mistakes` through `test_error_case_parse_lists_every_listed_error`.
+- [x] `with_metadata("UID", x)` puts `UID` directly after the last version field and changes no other byte. *Tests:* corpus cases `edits/uid-after-last-version`, `uid-after-tdl-only`; `test_edits.py` (one changed span, generated files).
+- [x] `Color: #fff` raises `tdl-bare-hash`; `Color: "#fff"   # note` is a `String` and a `Comment`. *Tests:* `test_acceptance.py`; corpus cases `errors/bare-hash`, `strings/hash-and-comment`.
+- [x] `Text: {{ max(a, b) }}` is one `Slot` with text ` max(a, b) `; `{{ '}}' }}` ends at the second `}}`; `{{ {'a': {'b': 1}} }}` ends at the first `}}` and leaves the rest to TEL. *Tests:* `test_acceptance.py`; corpus cases `slots/one-slot`, `slots/quoted-close`, `errors/slot-ends-at-first-close`.
+- [x] `}}` where two blocks close raises `tdl-double-close` and the hint says `} }`. *Tests:* `test_acceptance.py`; corpus case `errors/double-close`.
+- [x] A file at 1 MiB parses within the budget; one byte over raises `tdl-too-large`. *Tests:* `test_limits.py` (exact size, one byte more, growth ratio); the measured time is in [benchmarks.md](benchmarks.md).
+- [x] Importing `tdl` imports no other third-party package, and `tdl.__all__` lists every public name. *Tests:* `test_acceptance.py` (a clean interpreter with `-I`, and the list of public names).
+- [ ] A tree built in code and the same file parsed give equal `canonical()` results. *Not in 0.1:* building a tree in code, the formatter and `canonical()` on such a tree wait for open question 3 (G26); `canonical()` on a parsed document is in 0.1.
 
 ## Links
 

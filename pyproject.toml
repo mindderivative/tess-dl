@@ -30,6 +30,24 @@ dev = ["pytest>=8.0", "ruff>=0.6", "mypy>=1.10", "hypothesis>=6.100"]
 [tool.hatch.build.targets.wheel]
 packages = ["src/tdl"]
 
+[tool.hatch.build.targets.sdist]
+# What ships: the library, its licence, the docs that describe the language, and the tests with
+# the conformance corpus (test data the Tesserae Shell reads). Not the agent instructions, hooks,
+# skills, tools, benchmarks or notes (some are machine-local or third-party).
+include = [
+    "/src",
+    "/tests",
+    "/LICENSE",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/pyproject.toml",
+    "/docs/language.md",
+    "/docs/api.md",
+    "/docs/decisions.md",
+    "/docs/versioning.md",
+    "/docs/benchmarks.md",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
