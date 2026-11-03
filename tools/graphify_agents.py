@@ -57,7 +57,7 @@ def bare(command):
 
 
 def with_hooks(settings, wanted):
-    """Add the wanted PreToolUse entries that settings lacks, matched by command (the matcher may differ)."""
+    """Add the wanted PreToolUse entries that settings lacks, matched by command."""
     entries = settings.setdefault("hooks", {}).setdefault("PreToolUse", [])
     have = {bare(h.get("command")) for e in entries for h in e.get("hooks", [])}
     for entry in wanted.get("hooks", {}).get("PreToolUse", []):
