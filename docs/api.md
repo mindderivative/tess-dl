@@ -163,7 +163,7 @@ Error messages are plain sentences that a screen reader reads whole: no colour o
 
 ## Performance Budget
 
-- Parsing is one pass over the text and keeps no copy beyond the tree. Target: a 100 KB file in under 20 ms and a file at the 1 MiB limit in under 250 ms (proposed, to be measured on the first slice; Performance Budgets holds the ledger).
+- Parsing is one pass over the text. Budget: a 100 KB file in under 20 ms and a file at the 1 MiB limit in under 250 ms. Measured on 2026-11-03 (Python 3.14.8, AMD Ryzen AI 9 HX 370): 13.1 ms and 140.3 ms, growing linearly; no adversarial input is super-linear. The tree the reader keeps is about 19 times the size of the text. The figures, the method and the command are in [benchmarks.md](benchmarks.md); Performance Budgets in the vault holds the ledger.
 - `loads` of the same text twice gives equal documents; a cache is the shell's business (a warm cache keys on the file's hash, as the schema cache does).
 - The library allocates no thread and no timer.
 
