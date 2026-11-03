@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "canonical": {
+    "metadata": {
+      "TDL": {
+        "word": "0.1"
+      },
+      "Name": {
+        "word": "T"
+      },
+      "Title": {
+        "string": "Main Shell"
+      }
+    },
+    "root": {
+      "block": "Shell",
+      "entries": []
+    }
+  }
+}

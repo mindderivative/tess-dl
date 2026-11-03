@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "code": "tdl-bad-name",
+      "line": 3,
+      "column": 7
+    }
+  ]
+}

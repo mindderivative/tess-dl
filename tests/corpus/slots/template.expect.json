@@ -1,0 +1,34 @@
+{
+  "ok": true,
+  "canonical": {
+    "metadata": {
+      "TDL": {
+        "word": "0.1"
+      },
+      "Name": {
+        "word": "T"
+      }
+    },
+    "root": {
+      "block": "Shell",
+      "entries": [
+        {
+          "property": "Text",
+          "value": {
+            "template": [
+              {
+                "text": "Battery "
+              },
+              {
+                "slot": " battery.percent "
+              },
+              {
+                "text": "%"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

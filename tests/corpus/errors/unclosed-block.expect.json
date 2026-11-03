@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "code": "tdl-unclosed-block",
+      "line": 5,
+      "column": 7
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "ok": true,
+  "canonical": {
+    "metadata": {
+      "TDL": {
+        "word": "0.1"
+      },
+      "Name": {
+        "word": "T"
+      }
+    },
+    "root": {
+      "block": "Shell",
+      "entries": [
+        {
+          "for": "item",
+          "in": {
+            "slot": " items "
+          },
+          "key": {
+            "slot": " item.id "
+          },
+          "body": [
+            {
+              "block": "Label",
+              "entries": [
+                {
+                  "property": "Text",
+                  "value": {
+                    "slot": " item.title "
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "canonical": {
+    "metadata": {
+      "TDL": {
+        "word": "0.1"
+      },
+      "Name": {
+        "word": "T"
+      }
+    },
+    "root": {
+      "block": "Params",
+      "entries": [
+        {
+          "block": "format",
+          "entries": [
+            {
+              "property": "Type",
+              "value": {
+                "word": "string"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

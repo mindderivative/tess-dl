@@ -1,0 +1,31 @@
+{
+  "ok": true,
+  "canonical": {
+    "metadata": {
+      "TDL": {
+        "word": "0.1"
+      },
+      "Name": {
+        "word": "T"
+      }
+    },
+    "root": {
+      "block": "Shell",
+      "entries": [
+        {
+          "property": "Items",
+          "value": {
+            "list": [
+              {
+                "slot": " a "
+              },
+              {
+                "slot": " b "
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

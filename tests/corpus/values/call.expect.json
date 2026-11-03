@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "canonical": {
+    "metadata": {
+      "TDL": {
+        "word": "0.1"
+      },
+      "Name": {
+        "word": "T"
+      }
+    },
+    "root": {
+      "block": "Shell",
+      "entries": [
+        {
+          "property": "Color",
+          "value": {
+            "call": "rgba",
+            "args": [
+              {
+                "number": 0
+              },
+              {
+                "number": 0
+              },
+              {
+                "number": 0
+              },
+              {
+                "number": 0.5
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "code": "tdl-no-root",
+      "line": 5,
+      "column": 1
+    }
+  ]
+}

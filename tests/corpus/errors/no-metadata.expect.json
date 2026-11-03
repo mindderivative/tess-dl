@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "code": "tdl-no-metadata",
+      "line": 1,
+      "column": 1
+    }
+  ]
+}

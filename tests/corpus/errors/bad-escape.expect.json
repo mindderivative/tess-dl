@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "code": "tdl-bad-escape",
+      "line": 6,
+      "column": 11
+    }
+  ]
+}

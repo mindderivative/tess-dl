@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "code": "tdl-reserved-name",
+      "line": 6,
+      "column": 3
+    }
+  ]
+}

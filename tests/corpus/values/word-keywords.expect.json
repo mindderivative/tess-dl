@@ -1,0 +1,36 @@
+{
+  "ok": true,
+  "canonical": {
+    "metadata": {
+      "TDL": {
+        "word": "0.1"
+      },
+      "Name": {
+        "word": "T"
+      }
+    },
+    "root": {
+      "block": "Shell",
+      "entries": [
+        {
+          "property": "Flag",
+          "value": {
+            "word": "true"
+          }
+        },
+        {
+          "property": "Nothing",
+          "value": {
+            "word": "null"
+          }
+        },
+        {
+          "property": "Edge",
+          "value": {
+            "word": "TOP"
+          }
+        }
+      ]
+    }
+  }
+}

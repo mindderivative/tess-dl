@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "canonical": {
+    "metadata": {
+      "TDL": {
+        "word": "0.1"
+      },
+      "Name": {
+        "word": "T"
+      }
+    },
+    "root": {
+      "block": "Shell",
+      "entries": [
+        {
+          "block": "Children",
+          "entries": [
+            {
+              "block": "Label",
+              "entries": []
+            }
+          ]
+        },
+        {
+          "property": "Import",
+          "value": {
+            "word": "File.tdl"
+          }
+        }
+      ]
+    }
+  }
+}

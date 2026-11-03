@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "canonical": {
+    "metadata": {
+      "TDL": {
+        "word": "0.1"
+      },
+      "Name": {
+        "word": "T"
+      },
+      "Shell": {
+        "word": "0.1"
+      },
+      "UID": {
+        "word": "0192d3c4-7a1e-7c2f-9b1a-3f5e2d8a6c10"
+      }
+    },
+    "root": {
+      "block": "Shell",
+      "entries": []
+    }
+  }
+}

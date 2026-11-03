@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "code": "tdl-metadata-unclosed",
+      "line": 1,
+      "column": 1
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "code": "tdl-empty-slot",
+      "line": 6,
+      "column": 9
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "code": "tdl-unexpected-text",
+      "line": 6,
+      "column": 9
+    }
+  ]
+}

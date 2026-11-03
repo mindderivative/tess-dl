@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "code": "tdl-double-close",
+      "line": 8,
+      "column": 3
+    }
+  ]
+}

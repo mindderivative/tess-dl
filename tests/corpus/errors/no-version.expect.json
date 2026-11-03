@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "code": "tdl-no-version",
+      "line": 1,
+      "column": 1
+    }
+  ]
+}

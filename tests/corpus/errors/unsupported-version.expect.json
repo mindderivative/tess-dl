@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "code": "tdl-unsupported-version",
+      "line": 2,
+      "column": 6
+    }
+  ]
+}

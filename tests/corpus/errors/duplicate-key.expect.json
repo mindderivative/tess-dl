@@ -1,0 +1,15 @@
+{
+  "errors": [
+    {
+      "code": "tdl-duplicate-key",
+      "line": 7,
+      "column": 3,
+      "related": [
+        {
+          "line": 6,
+          "column": 3
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "errors": [
+    {
+      "code": "tdl-unexpected-text",
+      "line": 6,
+      "column": 9
+    },
+    {
+      "code": "tdl-bare-hash",
+      "line": 7,
+      "column": 10
+    },
+    {
+      "code": "tdl-unclosed-string",
+      "line": 8,
+      "column": 9
+    },
+    {
+      "code": "tdl-duplicate-key",
+      "line": 10,
+      "column": 3,
+      "related": [
+        {
+          "line": 9,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "code": "tdl-empty-slot",
+      "line": 11,
+      "column": 9
+    },
+    {
+      "code": "tdl-bad-escape",
+      "line": 12,
+      "column": 11
+    }
+  ]
+}
