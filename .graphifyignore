@@ -1,3 +1,7 @@
 # Agent-harness plans and editor settings, not project content.
 .omp/
 .vscode/
+# Third-party skill text (language footgun guides, case studies) would drown the code graph.
+.agents/skills/sharp-edges/references/
+.agents/skills/property-based-testing/references/
+.agents/skills/LICENSE-trailofbits
