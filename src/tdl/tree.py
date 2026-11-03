@@ -4,6 +4,7 @@ from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
 
 from ._source import Source
+from .errors import TDLSyntaxError
 from .origin import Origin
 
 type Data = dict[str, object]
@@ -346,3 +347,16 @@ class Document:
 
 def _value_text(value: Word | String) -> str:
     return value.text if isinstance(value, Word) else value.value
+
+
+@dataclass(frozen=True, slots=True)
+class ParseResult:
+    """What `parse` returns: the best tree it could build and every error it found.
+
+    `errors` are in source order, at most `Limits.max_errors`. `document` leaves out any entry
+    that had a mistake; it is `None` when the metadata or the root block cannot be read, when a
+    limit stops the file, or when the error cap is reached.
+    """
+
+    document: Document | None
+    errors: tuple[TDLSyntaxError, ...]

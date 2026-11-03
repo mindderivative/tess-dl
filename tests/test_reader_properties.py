@@ -8,20 +8,14 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 import tdl
+from layouts import OK_TEXTS, SOUP
 
 CORPUS = Path(__file__).parent / "corpus"
-OK_TEXTS = [
-    p.read_bytes().decode("utf-8")
-    for p in sorted(CORPUS.rglob("*.tdl"))
-    if p.parent.name not in {"errors", "edits"} and not p.name.endswith(".result.tdl")
-]
 CODES = {
     e["code"]
     for p in CORPUS.glob("errors/*.expect.json")
     for e in json.loads(p.read_text("utf-8"))["errors"]
 }
-# Characters that steer the reader: braces, quotes, hashes, slots, newlines and names.
-SOUP = st.text(alphabet="{}[]()\"'#:,\\ \t\r\nabAB09-%.=\u00e9", max_size=200)
 
 
 def read_or_syntax_error(text: str) -> tdl.Document | None:

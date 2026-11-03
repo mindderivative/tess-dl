@@ -7,7 +7,7 @@ doc.root.type                                   # the root block's head word
 """
 
 from ._io import dump, dumps, load
-from ._parser import LANGUAGE_VERSION, loads
+from ._parser import LANGUAGE_VERSION, loads, parse
 from .errors import TDLError, TDLSyntaxError
 from .limits import Limits
 from .origin import Origin
@@ -22,6 +22,7 @@ from .tree import (
     List,
     Metadata,
     Number,
+    ParseResult,
     Percent,
     Property,
     Slot,
@@ -47,6 +48,7 @@ __all__ = [
     "Metadata",
     "Number",
     "Origin",
+    "ParseResult",
     "Percent",
     "Property",
     "Slot",
@@ -61,4 +63,5 @@ __all__ = [
     "dumps",
     "load",
     "loads",
+    "parse",
 ]

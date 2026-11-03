@@ -1,6 +1,18 @@
 """Generators shared by the property tests: valid TDL files with random layout."""
 
+from pathlib import Path
+
 from hypothesis import strategies as st
+
+CORPUS = Path(__file__).parent / "corpus"
+OK_TEXTS = [
+    p.read_bytes().decode("utf-8")
+    for p in sorted(CORPUS.rglob("*.tdl"))
+    if p.parent.name not in {"errors", "edits"} and not p.name.endswith(".result.tdl")
+]
+
+# Characters that steer the reader: braces, quotes, hashes, slots, newlines and names.
+SOUP = st.text(alphabet="{}[]()\"'#:,\\ \t\r\nabAB09-%.=\u00e9", max_size=200)
 
 HEAD = "---\nTDL: 0.1\nName: T\n---\n"
 ENTRIES = [

@@ -9,7 +9,7 @@ import re
 from typing import NoReturn
 
 from ._source import Source
-from .errors import syntax_error, too_large
+from .errors import TDLSyntaxError, syntax_error, too_large
 from .limits import Limits
 from .tree import (
     Block,
@@ -22,6 +22,7 @@ from .tree import (
     List,
     Metadata,
     Number,
+    ParseResult,
     Percent,
     Property,
     Slot,
@@ -61,6 +62,14 @@ _ESCAPES = {"\\": "\\", '"': '"', "'": "'", "n": "\n", "t": "\t"}
 _SPACE_AFTER_HASH = frozenset({"", " ", "\t", "\r", "\n"})
 
 
+class _Stop(Exception):
+    """Reading ends here: the error cap was reached or a limit error stopped the file."""
+
+
+_FATAL = frozenset({"tdl-too-large", "tdl-too-deep", "tdl-bad-encoding"})
+_RESYNC = re.compile(r"[\n{}]")  # the characters that decide where reading carries on
+
+
 def _skip(pattern: re.Pattern[str], text: str, pos: int) -> int:
     """The end of a match of a pattern that can match nothing (so it always matches)."""
     match = pattern.match(text, pos)
@@ -74,8 +83,24 @@ class _Reader:
         self.n = len(text)
         self.limits = limits
         self.source = Source(text, path)
+        self.errors: list[TDLSyntaxError] | None = None  # a list when `parse` collects errors
+        self.last_at = 0  # where the last error was raised: reading resumes after it
+        self.pair_close = -1  # the second `}` of a `}}` that was already reported
 
     # errors
+
+    def error(
+        self,
+        code: str,
+        at: int,
+        *related: int,
+        message: str | None = None,
+        hint: str | None = None,
+    ) -> TDLSyntaxError:
+        self.last_at = at
+        origin = self.source.origin(at, min(at + 1, self.n))
+        others = tuple(self.source.origin(r, min(r + 1, self.n)) for r in related)
+        return syntax_error(code, origin, others, message=message, hint=hint)
 
     def fail(
         self,
@@ -85,9 +110,62 @@ class _Reader:
         message: str | None = None,
         hint: str | None = None,
     ) -> NoReturn:
-        origin = self.source.origin(at, min(at + 1, self.n))
-        others = tuple(self.source.origin(r, min(r + 1, self.n)) for r in related)
-        raise syntax_error(code, origin, others, message=message, hint=hint)
+        raise self.error(code, at, *related, message=message, hint=hint)
+
+    def signal(
+        self,
+        code: str,
+        at: int,
+        *related: int,
+        message: str | None = None,
+        hint: str | None = None,
+    ) -> None:
+        """A mistake the reader can read past: `parse` records it, `loads` stops at it."""
+        error = self.error(code, at, *related, message=message, hint=hint)
+        if self.errors is None:
+            raise error
+        self.record(error)
+
+    def record(self, error: TDLSyntaxError) -> None:
+        """Keeps an error in source order. At the cap the last entry says so, and reading stops."""
+        errors = self.errors
+        assert errors is not None
+        cap = max(1, self.limits.max_errors)
+        if len(errors) >= cap:
+            last = errors[-1]
+            note = f"The list stops at {cap} errors."
+            if not last.message.endswith(note):
+                message = f"{last.message} {note}"
+                errors[-1] = TDLSyntaxError(
+                    last.code, message, last.hint, last.origin, last.related
+                )
+            raise _Stop
+        index = len(errors)
+        while index > 0 and errors[index - 1].origin.offset > error.origin.offset:
+            index -= 1
+        errors.insert(index, error)
+
+    def absorb(self, error: TDLSyntaxError) -> None:
+        """`parse` keeps the error; one that ends the file (a limit) also stops the reading."""
+        self.record(error)
+        if error.code in _FATAL:
+            raise _Stop
+
+    def resync(self, at: int) -> int:
+        """Where reading carries on after a mistake: the end of the bad line, or the `}` that
+        closes the block the bad entry is in. Braces opened on the bad line itself are skipped."""
+        depth = 0
+        for hit in _RESYNC.finditer(self.text, at):
+            char = hit.group()
+            if char == "\n":
+                return hit.start()
+            if char == "{":
+                depth += 1
+            elif depth == 0:
+                return hit.start()
+            else:
+                depth -= 1
+        return self.n
 
     def too_deep(self, at: int) -> NoReturn:
         self.fail(
@@ -130,6 +208,31 @@ class _Reader:
         self.after_root(end)
         return Document(metadata, root, self.source.path, text, version)
 
+    def parse_all(self) -> Document | None:
+        """Reads as far as it can, recording every error; the best tree, or `None`."""
+        self.errors = []
+        try:
+            return self.read_all()
+        except _Stop:
+            return None
+
+    def read_all(self) -> Document | None:
+        try:
+            self.check_size()
+            text = self.text
+            first = 1 if text.startswith(_BOM) else 0
+            fence = _FENCE.match(text, first)
+            if fence is None:
+                self.fail("tdl-no-metadata", first)
+            metadata, after_fence = self.metadata(first, fence.end())
+            version = self.check_metadata(metadata, first)
+            root, end = self.root(after_fence)
+            self.after_root(end)
+        except TDLSyntaxError as error:
+            self.absorb(error)  # nothing more can be read: no tree
+            return None
+        return Document(metadata, root, self.source.path, text, version)
+
     # metadata
 
     def metadata(self, opening: int, pos: int) -> tuple[Metadata, int]:
@@ -146,39 +249,48 @@ class _Reader:
             if fence is not None:
                 end = fence.end()
                 break
-            at = _skip(_INLINE, text, pos)
-            char = text[at : at + 1]
-            if char == "" or char == "\n":
-                pos = next_line
-                continue
-            if char == "#":
-                entries.append(self.comment(at))
-                pos = next_line
-                continue
-            key = _KEY.match(text, at)
-            if key is None:
-                self.fail("tdl-unexpected-text", at)
-            colon = _skip(_INLINE, text, key.end())
-            if text[colon : colon + 1] != ":":
-                self.fail(
-                    "tdl-unexpected-text",
-                    colon,
-                    message="A key needs a colon and a value.",
-                )
-            name = key.group()
-            if name in first_seen:
-                self.fail(
-                    "tdl-duplicate-key",
-                    at,
-                    first_seen[name],
-                    message=f"The key {name} is already used on line "
-                    f"{self.source.line_column(first_seen[name])[0]}.",
-                )
-            first_seen[name] = at
-            value = self.metadata_value(colon + 1)
-            entries.append(Property(name, value, start=at, end=value.end, source=self.source))
+            try:
+                self.metadata_line(pos, entries, first_seen)
+            except TDLSyntaxError as error:
+                if self.errors is None:
+                    raise
+                self.absorb(error)  # a bad line is skipped; the next line is read
             pos = next_line
         return Metadata(tuple(entries), start=opening, end=end, source=self.source), end
+
+    def metadata_line(
+        self, pos: int, entries: list[Property | Comment], first_seen: dict[str, int]
+    ) -> None:
+        text = self.text
+        at = _skip(_INLINE, text, pos)
+        char = text[at : at + 1]
+        if char == "" or char == "\n":
+            return
+        if char == "#":
+            entries.append(self.comment(at))
+            return
+        key = _KEY.match(text, at)
+        if key is None:
+            self.fail("tdl-unexpected-text", at)
+        colon = _skip(_INLINE, text, key.end())
+        if text[colon : colon + 1] != ":":
+            self.fail(
+                "tdl-unexpected-text",
+                colon,
+                message="A key needs a colon and a value.",
+            )
+        name = key.group()
+        if name in first_seen:
+            self.fail(
+                "tdl-duplicate-key",
+                at,
+                first_seen[name],
+                message=f"The key {name} is already used on line "
+                f"{self.source.line_column(first_seen[name])[0]}.",
+            )
+        first_seen[name] = at
+        value = self.metadata_value(colon + 1)
+        entries.append(Property(name, value, start=at, end=value.end, source=self.source))
 
     def metadata_value(self, pos: int) -> Word | String:
         text = self.text
@@ -201,29 +313,32 @@ class _Reader:
         return Word(word, start=at, end=at + len(word), source=self.source)
 
     def check_metadata(self, metadata: Metadata, opening: int) -> str:
-        """The required keys and the version; returns the language version of the file."""
+        """The required keys and the version; returns the language version ("" if none)."""
         if "TDL" not in metadata:
-            self.fail("tdl-no-version", opening)
+            self.signal("tdl-no-version", opening)
         if "Name" not in metadata:
-            self.fail("tdl-no-name", opening)
-        name = metadata["Name"]
-        name_text = name.text if isinstance(name, Word) else name.value
-        if _KEY.fullmatch(name_text) is None:
-            self.fail("tdl-bad-name", name.start)
-        if name_text in _RESERVED:
-            self.fail("tdl-reserved-name", name.start)
+            self.signal("tdl-no-name", opening)
+        else:
+            name = metadata["Name"]
+            name_text = name.text if isinstance(name, Word) else name.value
+            if _KEY.fullmatch(name_text) is None:
+                self.signal("tdl-bad-name", name.start)
+            elif name_text in _RESERVED:
+                self.signal("tdl-reserved-name", name.start)
+        if "TDL" not in metadata:
+            return ""
         version = metadata["TDL"]
         version_text = version.text if isinstance(version, Word) else version.value
         major = re.match(r"[0-9]+", version_text)
         if major is None:
-            self.fail(
+            self.signal(
                 "tdl-unsupported-version",
                 version.start,
                 message=f"The TDL version {version_text} does not start with a number.",
                 hint=f"Write TDL: {LANGUAGE_VERSION}",
             )
-        if int(major.group()) > _MAJOR:
-            self.fail(
+        elif int(major.group()) > _MAJOR:
+            self.signal(
                 "tdl-unsupported-version",
                 version.start,
                 message=f"This file is written for TDL {version_text}; this library reads "
@@ -252,14 +367,32 @@ class _Reader:
         return self.block(at, head.group(), brace, 1)
 
     def after_root(self, pos: int) -> None:
-        at = self.trivia(pos)
-        if at >= self.n:
-            return
-        if self.text[at] == "}":
-            self.close_without_block(at)
-        if _KEY.match(self.text, at) is not None:
-            self.fail("tdl-many-roots", at)
-        self.fail("tdl-unexpected-text", at)
+        """Only comments and blank lines may follow the root block."""
+        text = self.text
+        while True:
+            at = self.trivia(pos)
+            if at >= self.n:
+                return
+            if at == self.pair_close:  # the second `}` of a `}}` that was already reported
+                pos = at + 1
+                continue
+            if text[at] == "}":
+                pair = text.startswith("}}", at)
+                self.signal("tdl-double-close" if pair else "tdl-unexpected-close", at)
+                self.pair_close = at + 1 if pair else -1
+                pos = at + 1
+                continue
+            head = _KEY.match(text, at)
+            if head is None:
+                self.signal("tdl-unexpected-text", at)
+                pos = self.resync(at)
+                continue
+            self.signal("tdl-many-roots", at)
+            brace = _skip(_INLINE, text, head.end())
+            if text[brace : brace + 1] == "{":
+                _, pos = self.block(at, head.group(), brace, 1)  # read it: no second report
+            else:
+                pos = self.resync(at)
 
     def close_without_block(self, at: int) -> NoReturn:
         if self.text.startswith("}}", at):
@@ -292,62 +425,74 @@ class _Reader:
         while True:
             pos = _skip(_SKIP, text, pos)
             if pos >= self.n:
-                self.fail("tdl-unclosed-block", opening)
-            char = text[pos]
-            if char == "}":
+                self.signal("tdl-unclosed-block", opening)
+                return tuple(out), self.n
+            if text[pos] == "}":
                 if text.startswith("}}", pos):
-                    self.fail("tdl-double-close", pos)
+                    self.signal("tdl-double-close", pos)
+                    self.pair_close = pos + 1  # the pair closes this block and the next one
                 return tuple(out), pos + 1
-            if char == "#":
-                comment = self.comment(pos)
-                out.append(comment)
-                pos = comment.end
-                continue
-            key = _KEY.match(text, pos)
-            if key is None:
-                self.fail("tdl-unexpected-text", pos)
-            word = key.group()
-            if word == "If":
-                node, pos = self.if_(pos, key.end(), level)
-                out.append(node)
-                continue
-            if word == "For":
-                loop, pos = self.for_(pos, key.end(), level)
-                out.append(loop)
-                continue
-            if word == "Else":
+            start = pos
+            try:
+                pos = self.entry(pos, level, out, first_seen)
+            except TDLSyntaxError as error:
+                if self.errors is None:
+                    raise
+                self.absorb(error)  # a bad entry is skipped to the end of its line
+                pos = max(self.resync(self.last_at), start + 1)
+
+    def entry(self, pos: int, level: int, out: list[Entry], first_seen: dict[str, int]) -> int:
+        """Reads one entry at `pos`, adds it to `out` and returns where it ends."""
+        text = self.text
+        if text[pos] == "#":
+            comment = self.comment(pos)
+            out.append(comment)
+            return comment.end
+        key = _KEY.match(text, pos)
+        if key is None:
+            self.fail("tdl-unexpected-text", pos)
+        word = key.group()
+        if word == "If":
+            node, end = self.if_(pos, key.end(), level)
+            out.append(node)
+            return end
+        if word == "For":
+            loop, end = self.for_(pos, key.end(), level)
+            out.append(loop)
+            return end
+        if word == "Else":
+            self.fail(
+                "tdl-unexpected-text",
+                pos,
+                message="This Else has no If before it.",
+                hint="Write Else directly after the closing } of an If",
+            )
+        after = _skip(_INLINE, text, key.end())
+        char = text[after : after + 1]
+        if char == ":":
+            if word in first_seen:
                 self.fail(
-                    "tdl-unexpected-text",
+                    "tdl-duplicate-key",
                     pos,
-                    message="This Else has no If before it.",
-                    hint="Write Else directly after the closing } of an If",
+                    first_seen[word],
+                    message=f"The key {word} is already used on line "
+                    f"{self.source.line_column(first_seen[word])[0]}.",
                 )
-            after = _skip(_INLINE, text, key.end())
-            char = text[after : after + 1]
-            if char == ":":
-                if word in first_seen:
-                    self.fail(
-                        "tdl-duplicate-key",
-                        pos,
-                        first_seen[word],
-                        message=f"The key {word} is already used on line "
-                        f"{self.source.line_column(first_seen[word])[0]}.",
-                    )
-                first_seen[word] = pos
-                value, pos_after = self.value(after + 1, level, ",}")
-                out.append(Property(word, value, start=pos, end=value.end, source=self.source))
-                pos = pos_after
-            elif char == "{":
-                if word in _RESERVED:
-                    self.fail("tdl-reserved-name", pos)
-                block, pos = self.block(pos, word, after, level + 1)
-                out.append(block)
-            else:
-                self.fail(
-                    "tdl-unexpected-text",
-                    after,
-                    message="A key needs a colon and a value, or a { to open a block.",
-                )
+            first_seen[word] = pos
+            value, end = self.value(after + 1, level, ",}")
+            out.append(Property(word, value, start=pos, end=value.end, source=self.source))
+            return end
+        if char == "{":
+            if word in _RESERVED:
+                self.fail("tdl-reserved-name", pos)
+            block, end = self.block(pos, word, after, level + 1)
+            out.append(block)
+            return end
+        self.fail(
+            "tdl-unexpected-text",
+            after,
+            message="A key needs a colon and a value, or a { to open a block.",
+        )
 
     def comment(self, at: int) -> Comment:
         text = self.text
@@ -677,3 +822,14 @@ class _Reader:
 def loads(text: str, *, path: str | None = None, limits: Limits | None = None) -> Document:
     """Reads TDL text into a `Document`; raises `TDLSyntaxError` on the first mistake."""
     return _Reader(text, path, limits or Limits()).document()
+
+
+def parse(text: str, *, path: str | None = None, limits: Limits | None = None) -> ParseResult:
+    """Reads as much as it can: the best tree and every error found, in source order.
+
+    Never raises for a syntax error. `document` is `None` when the metadata or the root block
+    cannot be read, when a limit stops the file, or when the error cap is reached.
+    """
+    reader = _Reader(text, path, limits or Limits())
+    document = reader.parse_all()
+    return ParseResult(document, tuple(reader.errors or ()))

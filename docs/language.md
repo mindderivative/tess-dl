@@ -264,7 +264,15 @@ Four more codes report what the library will not read at all. Each stops the fil
 | `tdl-unsupported-version` | The `TDL:` version is newer than this library's | Use a newer `tdl` |
 | `tdl-bad-encoding` | The bytes are not valid UTF-8 (`load`; the message gives the byte offset), or the text holds a character UTF-8 cannot write, such as a lone surrogate (`loads`, G30) | Save the file as UTF-8 |
 
-The error list stops at 50 errors; the last entry says so.
+The error list stops at 50 errors; the last entry says so (`The list stops at 50 errors.`). `tdl.parse` lists every mistake it finds, in source order (G31):
+
+- A bad entry is recorded and skipped to the end of its line, or to the `}` that closes its block; braces opened on the bad line itself are skipped with it.
+- A bad metadata line is recorded and the next line is read; each missing or wrong required key (`TDL`, `Name`) is reported and reading goes on.
+- `}}` is reported once and closes up to two open blocks; the second `}` is not reported again.
+- A `{` that is never closed is reported at each unclosed `{` when the file ends.
+- A second root block is reported and then read, so its inside is not reported twice; text after the root block is reported line by line.
+- `tdl-too-large`, `tdl-too-deep` and `tdl-bad-encoding` stop the file with that one error.
+- The tree it returns leaves out the entries that had a mistake; there is none when the metadata or root block cannot be read.
 
 ## Where TDL differs
 

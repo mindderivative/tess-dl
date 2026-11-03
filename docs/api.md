@@ -35,7 +35,7 @@ The tree is not something tre can render. It describes the file. The shell turns
 |---|---|---|
 | `tdl.loads(text, *, path=None, limits=None)` | Parses a string. Returns a `Document`. Raises `TDLError` on the first syntax error | `json.loads`, `tomllib.loads` |
 | `tdl.load(fp, *, path=None, limits=None)` | Same, from a binary file object the caller opened (UTF-8; a byte-order mark is accepted). The library never opens a path itself | `tomllib.load` |
-| `tdl.parse(text, *, path=None, limits=None)` | Parses and never raises for a syntax error. Returns a `ParseResult` with the best tree it could build and a list of every error found, up to the limit. For editors and for the shell's "collect every error, then stop" rule | `ast.parse` (but tolerant) |
+| `tdl.parse(text, *, path=None, limits=None)` | Parses and never raises for a syntax error. Returns a `ParseResult(document, errors)`: the best tree it could build (`None` when the metadata or root block cannot be read, a limit stops the file or the cap is reached) and every error found, in source order, up to `Limits.max_errors`. For editors and for the shell's "collect every error, then stop" rule | `ast.parse` (but tolerant) |
 | `tdl.dumps(document)` | Returns the text of a document. For a document from `loads`, the result is exactly the input, byte for byte | `json.dumps` |
 | `tdl.dump(document, fp)` | Writes that text to a binary file object | `json.dump` |
 
@@ -172,8 +172,8 @@ Error messages are plain sentences that a screen reader reads whole: no colour o
 | Failure | Result |
 |---|---|
 | Invalid UTF-8 in `load` | `TDLSyntaxError` `tdl-bad-encoding`, with the byte offset |
-| Syntax error | `loads` raises; `parse` records it and carries on after the next recovery point (a newline, `}` or the end of a block) |
-| More than 50 errors | The list stops at the limit and the last entry says so |
+| Syntax error | `loads` raises at the first one it meets; `parse` records it and carries on (G31, [TDL Language > Errors](language.md)): a bad entry is skipped to the end of its line or the `}` that closes its block |
+| More than 50 errors | The list stops at the limit, the last entry says `The list stops at 50 errors.`, and nothing more is read |
 | An edit would break the file | `TDLError`; the original document is untouched |
 | A newer language version | `tdl-unsupported-version`, with the library's version in the message |
 

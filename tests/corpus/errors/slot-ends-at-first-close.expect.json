@@ -4,6 +4,11 @@
       "code": "tdl-double-close",
       "line": 6,
       "column": 28
+    },
+    {
+      "code": "tdl-unexpected-close",
+      "line": 7,
+      "column": 1
     }
   ]
 }
