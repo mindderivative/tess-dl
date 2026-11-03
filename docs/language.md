@@ -54,6 +54,8 @@ Color: "#1e1e1e"   # the # inside the quotes is part of the string
 
 A `#` starts a comment when it is the first thing on a line or follows whitespace. The comment runs to the end of the line. A `#` inside a quoted string or inside a slot is not a comment. A `#` with no whitespace before it (`a#b`) is part of the word.
 
+One case needs care: where a value is expected, a `#` followed directly by a non-space character (`Color: #fff`) is not a comment but the error `tdl-bare-hash`; a `#` followed by whitespace or the end of the line (`Color: # note`) is a comment. **(proposed, Q2)**
+
 *Differs from CSS:* there is no `/* */` and no `//`.
 
 ## Names and keys
