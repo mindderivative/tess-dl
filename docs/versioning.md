@@ -39,3 +39,12 @@ one-time setup, by the maintainer:
    environment is approved, and then creates the GitHub release from the changelog section.
 
 A version cannot be uploaded to PyPI twice: a mistake means the next version number.
+
+## The documentation site
+
+`docs/` is published with MkDocs (Material theme) to <https://mindderivative.github.io/tess-dl/> by
+`.github/workflows/docs.yml` on every push to `main` that changes `docs/`, `mkdocs.yml` or
+`pyproject.toml`. It is not a release: nothing is uploaded to PyPI. GitHub Pages is set to deploy
+from that workflow (*Settings → Pages → Source: GitHub Actions*). Build it locally with
+`uv pip install --group docs` and `mkdocs serve`; CI builds it with `--strict`, so a broken link
+fails the build.

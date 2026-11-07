@@ -48,3 +48,14 @@ jobs:
           text = '---\nTDL: 0.1\nName: T\n---\nShell { }\n'
           assert tess_dl.dumps(tess_dl.loads(text)) == text
           "
+
+  docs:
+    runs-on: ubuntu-latest
+    env:
+      NO_MKDOCS_2_WARNING: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: false
+      - run: uv run --python 3.14 --only-group docs mkdocs build --strict

@@ -1,0 +1,50 @@
+# Builds docs/ with MkDocs and deploys it to GitHub Pages (https://mindderivative.github.io/tess-dl/).
+# Scoped by `paths:` to the files that can change the site, so an unrelated commit does not
+# redeploy it. Not a release: the package is published by release.yml only.
+name: Deploy Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "pyproject.toml"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One Pages deployment at a time; a newer push wins over an in-flight older one.
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+env:
+  NO_MKDOCS_2_WARNING: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: false
+      - run: uv run --python 3.14 --only-group docs mkdocs build --strict
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

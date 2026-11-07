@@ -8,7 +8,7 @@ that keeps everything in the file (comments, layout, positions), reports every m
 > **Status:** alpha, package 0.1.1, language version 0.1. The import name changed from
 > `tdl` to `tess_dl` in 0.1.1 (see [`CHANGELOG.md`](CHANGELOG.md)). The API may change
 > before 1.0 (a minor version may break it; see [`docs/versioning.md`](docs/versioning.md)).
-> The language is in [`docs/language.md`](docs/language.md), the API in [`docs/api.md`](docs/api.md),
+> Documentation site: <https://mindderivative.github.io/tess-dl/>. The language is in [`docs/language.md`](docs/language.md), the API in [`docs/api.md`](docs/api.md),
 > the reasons for the choices in [`docs/decisions.md`](docs/decisions.md).
 
 `tess_dl` needs Python 3.14 or later and has no dependencies:
@@ -75,6 +75,7 @@ New cases come from a `TDL-REQ-###` through the maintainer; see
 uv pip install -e . --group dev   # into the active venv (Python 3.14+)
 python tools/check.py             # ruff, format check, mypy (strict), pytest: what CI runs
 python benchmarks/bench.py        # timing against the budget (docs/benchmarks.md)
+mkdocs serve                      # the docs site locally (uv pip install --group docs)
 ```
 
 Work is tracked on the [Tesserae Data Language board](https://github.com/users/mindderivative/projects/5)

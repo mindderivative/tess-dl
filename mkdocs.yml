@@ -1,0 +1,56 @@
+site_name: TDL
+site_description: >-
+  TDL, the Tesserae Data Language, and tess_dl, a lossless Python parser for it.
+site_url: https://mindderivative.github.io/tess-dl/
+repo_url: https://github.com/mindderivative/tess-dl
+repo_name: mindderivative/tess-dl
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+    - search.suggest
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - tables
+  - admonition
+  - attr_list
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+
+nav:
+  - Overview: index.md
+  - Language: language.md
+  - API: api.md
+  - Decisions: decisions.md
+  - Benchmarks: benchmarks.md
+  - Versioning: versioning.md
+  - First slice: first-slice.md
