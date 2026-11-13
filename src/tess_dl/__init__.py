@@ -6,6 +6,8 @@ doc = tess_dl.loads(text, path="Main_Shell.tdl")   # raises TDLSyntaxError on th
 doc.root.type                                   # the root block's head word
 """
 
+from ._format import format_block
+from ._format import format_document as format
 from ._io import dump, dumps, load
 from ._parser import LANGUAGE_VERSION, loads, parse
 from .errors import TDLError, TDLSyntaxError
@@ -61,6 +63,8 @@ __all__ = [
     "__version__",
     "dump",
     "dumps",
+    "format",
+    "format_block",
     "load",
     "loads",
     "parse",

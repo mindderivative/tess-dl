@@ -16,6 +16,10 @@ here (`docs/versioning.md`).
   that survives edits, for blocks without a `Name:`.
 - 12 new edit cases in the corpus (`without_property`, `with_child`, `without_child`, `move_child`;
   G35).
+- The formatter: `format_block(text)` (one block, as a string) and `format(document)` (a new
+  `Document`), writing the canonical layout of `docs/api.md` (G36): two spaces a level, one entry per
+  line, comments and blank lines kept, values written as they were. Idempotent; the result is
+  reread and must hold the same content and comments.
 
 ## 0.1.1
 
