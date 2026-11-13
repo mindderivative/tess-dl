@@ -48,7 +48,9 @@ doc3 = doc.find("Shell_Root.Top_Bar").with_property("Height", "40")
   `String`, `Number`, `Percent`, `Call`, `List`, `Slot` and `Template` for values. Nodes are
   immutable, keep where they came from (`node.origin`), and are safe to share between threads.
 - Edits return a new `Document` and change only the bytes they name: `with_metadata`,
-  `without_metadata`, `Block.with_property`, `replace`. An edit that would break the file raises.
+  `without_metadata`, `replace`, and on a block `with_property`, `without_property`, `with_child`,
+  `without_child`, `move_child`. An edit that would break the file raises. `Block.index_path` and
+  `Document.at` address a block by position, `format_block` and `format` write the canonical layout.
 - 22 error codes, each with a plain message, a hint and a position (`tdl-bare-hash`:
   "This colour needs quotes. Quote the colour: "#ffffff""). The list is in
   [`docs/language.md`](docs/language.md#errors).

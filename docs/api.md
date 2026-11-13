@@ -120,13 +120,24 @@ A document never changes in place. An edit returns a new `Document` whose text e
 
 Every edit keeps comments, blank lines, indentation and the order of everything it did not touch (this is what the UID write needs; R-06 in Risk Register). An edit that would make the file invalid raises `TDLError` and returns nothing. A call that is wrong whatever the file holds (a key that is not a name, a reserved word as a property key, a value that is not one value, a span outside the text, a block built in code) raises `ValueError`. Edits reread the result with the default `Limits`. The four block edits also check the reread result: the block must hold exactly its old entries plus or minus the one named, and an edit that would change anything else is refused with `ValueError`.
 
+### Formatting
+
+| Call | Does |
+|---|---|
+| `tess_dl.format_block(text)` | The canonical layout of one block, as a string without a trailing line ending. `text` is the TDL of exactly one block, as for `Block.with_child`; comment lines above or below it are kept. Errors are `TDLSyntaxError`s with origins inside `text` |
+| `tess_dl.format(document)` | A new `Document` whose text is in the canonical layout. Raises `TDLSyntaxError` for a document with errors (read it with `loads`, not `parse`) |
+
+**The canonical layout (G36).** Two spaces per level, never a tab. One entry per line: no `,` between entries and no entries sharing a line. A block with no entries is `Type { }` on one line. `If … { … } Else { … }` has `} Else {` on one line, unless there are comments between the `}` and the `Else`, which then stay on their own lines between them. `For x In {{ items }} Key {{ key }} {` has single spaces. `Key: value` has one space after the colon. A comment on its own line stays on its own line at the new indentation; a comment at the end of a line stays at the end of that line, after two spaces. Values, slots, strings and comments are written exactly as they were, and a value that spans lines (a list) keeps its inner layout, re-based to the new indentation. Where the source had one or more blank lines between two things, there is one; none at the start or end of a block. In a document the metadata block is written the same way, a comment or blank lines between it and the root block are kept (one blank line at most), and so are comment lines after the root block. The whole text uses the line ending of its first line, a leading byte-order mark stays, and the text ends with one line ending.
+
+Both are idempotent: formatting a result again changes nothing. The result is reread and must have the same content (`canonical()`) and the same comments as the input; if it would not, `ValueError` is raised and nothing is returned. Node positions change, but the entries and their index paths do not: `format` never adds, removes or reorders an entry. Formatting a tree built in code is not in this release (open question 3).
+
 ### Plain Data View
 
 `document.to_data()` and `block.to_data()` return plain dicts, lists and strings, with no comments or positions, for tools and tests that only need the content. The shape is the library's first-slice decision. The tree is the main API; this is a convenience.
 
 ### Building a Tree in Code
 
-The Python builder (Python Builder) must produce the same tree as the parser, so the nodes can be constructed directly: `Block("Bar", [Property("Edge", Word("TOP"))])`. A constructed node has no position. `tess_dl.dumps` formats a constructed tree with the library's standard layout (two-space indent). `node.canonical()` returns a normalised plain structure with trivia and positions dropped, so a parity test compares two trees by `==`. Names follow TEL's `canonical` (Expression Language Requirements > TEL 0.1.0 Released (2026-11-02)). Whether the formatter is in v0.1 is open.
+The Python builder (Python Builder) must produce the same tree as the parser, so the nodes can be constructed directly: `Block("Bar", [Property("Edge", Word("TOP"))])`. A constructed node has no position. `tess_dl.dumps` formats a constructed tree with the library's standard layout (two-space indent). `node.canonical()` returns a normalised plain structure with trivia and positions dropped, so a parity test compares two trees by `==`. Names follow TEL's `canonical` (Expression Language Requirements > TEL 0.1.0 Released (2026-11-02)). The formatter for text and documents is built ([Formatting](#formatting)); formatting a tree built in code waits until a program builds trees.
 
 ### Wording and Familiar Names
 
@@ -187,7 +198,7 @@ Error messages are plain sentences that a screen reader reads whole: no colour o
 
 1. [x] **Values stay lexical** (maintainer, 2026-11-02, "yes", D74). The reasoning was: the library returns `Word`, `String`, `Number`, `Percent`, `Call`, `List`, `Slot` and `Template`, and the schema in the shell types them. The alternative is for the library to know lengths and colours, which makes it carry shell meaning.
 2. [x] The suffix check is the shell's, as `shell-root-suffix` (maintainer, 2026-11-02, D91).
-3. [ ] Whether the formatter and `canonical()` are in the first release or follow when the Python builder starts.
+3. [ ] Whether `canonical()` on a tree built in code, `dumps` of such a tree and the Python builder are in a release. The formatter for text (`format_block`) and for documents (`format`) is built (G36).
 4. [ ] The shape of `to_data()`.
 5. [x] The extra codes `tdl-unsupported-version`, `tdl-too-large`, `tdl-too-deep` and `tdl-bad-encoding` are accepted (maintainer, 2026-11-02, G18), with `tdl-unexpected-text` (G13).
 6. [ ] A `tdl` command (`tdl check file.tdl`, `tdl format`) for authors and editors: recommended after the first release, not in it.
