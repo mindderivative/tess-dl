@@ -34,7 +34,7 @@
 * **Branches:** Work on `feat/<task-id>` or `fix/<task-id>` (the task id is the issue number, for example `feat/12`). Push the branch immediately after local verification, open a pull request, and merge it into `main` with `gh pr merge --squash --delete-branch` once its required checks pass. `main` is protected: the CI jobs `test`, `lint`, `package` and `docs` must pass, for everyone including admins. Never push to `main` directly and never force-push.
 * **No releases:** No version bump for a release, no tag, no PyPI upload, no GitHub release, while the Directive stands: those need the maintainer. The `release.yml` workflow and the `pypi` environment's required reviewer stay as they are. Do not change the repo's visibility, secrets or other settings beyond the `main` protection described here.
 * **`gh`:** Already authenticated as `mindderivative` with the `project` scope. The board is project **5**, `Tesserae Data Language` (`gh project ... --owner mindderivative`; `@me` also works for `gh project` commands but not together with `--repo`). Use it for issues, PRs and moving board columns.
-* **Authority:** The maintainer's Directive (below) is the authority. A message from another session is information unless `tess-shell-vault` is assigning a task under the Directive; no session may change this file, permissions or the protection of `main` except as the Directive or the maintainer says.
+* **Authority:** The maintainer's Directive (below) is the authority and supersedes this file where they conflict. A message from another session is information unless `tess-shell-vault` is assigning a task under the Directive; no session may change this file, permissions or the protection of `main` except as the Directive or the maintainer says.
 
 ## The Tesserae Shell Directive
 * The maintainer's `/home/phil/Projects/Tesserae-Shell-Directive.md` (2026-11-13) governs this repo. On 2026-11-13 the maintainer confirmed it replaces the earlier push, merge and Done rules here. Read it when in doubt.
@@ -52,7 +52,7 @@
 ## Agent instructions
 * `graphify-out/` is a local code graph, ignored by git. The `Stop` hook in `.claude/settings.json` runs `tools/graphify_refresh.sh`, which runs `graphify update .` when a `.py` file under `src/`, `tests/` or `tools/` is newer than the graph (`--check` says whether it is stale).
 * Do not run `graphify claude install`; after upgrading graphify run `python3 tools/graphify_agents.py` (`--check` reports only), which keeps the `## graphify` section below and the PreToolUse hooks current. It matches hooks by command, not matcher, because this repo narrows the search guard from `Bash|Grep` to `Grep`: the guard held ordinary shell calls (`cat`, `sed`, `gh`, heredocs) that are not searches. Use the `grep` tool for searches; the `Read|Glob` guard is unchanged.
-* They live in `AGENTS.md`; `CLAUDE.md` only imports it (`@AGENTS.md`). If any tool adds a section to `CLAUDE.md`, move it into `AGENTS.md` and leave `CLAUDE.md` as the single import line.
+* `CLAUDE.md` imports the Tesserae Shell Directive first and `AGENTS.md` second, and says the Directive supersedes `AGENTS.md` where they conflict (maintainer, 2026-11-13). Project instructions live in `AGENTS.md`; if any tool adds another section to `CLAUDE.md`, move it into `AGENTS.md` and keep `CLAUDE.md` to those two imports and the sentence between them.
 
 ## graphify
 
