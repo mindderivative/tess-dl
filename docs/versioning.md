@@ -48,3 +48,11 @@ A version cannot be uploaded to PyPI twice: a mistake means the next version num
 from that workflow (*Settings → Pages → Source: GitHub Actions*). Build it locally with
 `uv pip install --group docs` and `mkdocs serve`; CI builds it with `--strict`, so a broken link
 fails the build.
+
+## Releases under the Tesserae Shell Directive
+
+While the maintainer's Tesserae Shell Directive (2026-11-13) stands, no version tag, PyPI upload or
+GitHub release is made without the maintainer. Work goes to `feat/<id>` or `fix/<id>` branches and is
+merged into `main` by pull request once the CI jobs `test`, `lint`, `package` and `docs` pass; `main`
+is protected so that this holds for everyone. The Release workflow and the `pypi` environment's
+required reviewer are unchanged.
