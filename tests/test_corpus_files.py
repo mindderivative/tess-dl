@@ -48,6 +48,10 @@ EDIT_CALLS = {
     "without_metadata": {"call", "key"},
     "with_property": {"call", "block", "key", "value"},
     "replace": {"call", "start", "end", "text"},
+    "without_property": {"call", "block", "key"},
+    "with_child": {"call", "block", "text", "index"},
+    "without_child": {"call", "block", "index"},
+    "move_child": {"call", "block", "index", "to"},
 }
 VALUE_KEYS = [
     {"word"},

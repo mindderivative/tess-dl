@@ -1,0 +1,8 @@
+{
+  "edit": {
+    "call": "with_child",
+    "block": "Shell_Root",
+    "text": "Bar { }",
+    "index": null
+  }
+}

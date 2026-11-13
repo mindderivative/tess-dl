@@ -132,6 +132,14 @@ def apply(doc, edit):
         return doc.find(edit["block"]).with_property(edit["key"], edit["value"])
     if call == "replace":
         return doc.replace(edit["start"], edit["end"], edit["text"])
+    if call == "without_property":
+        return doc.find(edit["block"]).without_property(edit["key"])
+    if call == "with_child":
+        return doc.find(edit["block"]).with_child(edit["text"], edit["index"])[0]
+    if call == "without_child":
+        return doc.find(edit["block"]).without_child(edit["index"])
+    if call == "move_child":
+        return doc.find(edit["block"]).move_child(edit["index"], edit["to"])
     raise AssertionError(f"unknown edit call {call}")
 
 

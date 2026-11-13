@@ -1,0 +1,8 @@
+{
+  "edit": {
+    "call": "with_child",
+    "block": "Shell_Root",
+    "text": "Spacer { }",
+    "index": 0
+  }
+}

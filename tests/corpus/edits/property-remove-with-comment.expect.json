@@ -1,0 +1,7 @@
+{
+  "edit": {
+    "call": "without_property",
+    "block": "Shell_Root",
+    "key": "Width"
+  }
+}

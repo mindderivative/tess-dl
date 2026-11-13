@@ -4,6 +4,19 @@ All notable changes to the package. Versions follow [Semantic Versioning](https:
 1.0 a minor version may break the API. The language version is separate and is 0.1 for every release
 here (`docs/versioning.md`).
 
+## Unreleased
+
+### Added
+
+- Block edits: `Block.without_property(key)`, `Block.with_child(block_text, index=None)` (returns the
+  new document and the new block), `Block.without_child(child)` and `Block.move_child(child, to)`.
+  Comments, order and layout of everything untouched stay byte for byte; the reread result is
+  checked. Errors in `block_text` carry origins inside the text.
+- `Block.index_path` (also on `If` and `For`) and `Document.at(index_path)`: an address by position
+  that survives edits, for blocks without a `Name:`.
+- 12 new edit cases in the corpus (`without_property`, `with_child`, `without_child`, `move_child`;
+  G35).
+
 ## 0.1.1
 
 ### Breaking: the import name is `tess_dl`
