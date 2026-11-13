@@ -411,13 +411,18 @@ class _Reader:
 
     # blocks and entries
 
-    def block(self, start: int, type_: str, brace: int, level: int) -> tuple[Block, int]:
+    def block(
+        self, start: int, type_: str, brace: int, level: int, path: tuple[int, ...] = ()
+    ) -> tuple[Block, int]:
         if level > self.limits.max_depth:
             self.too_deep(brace)
-        entries, end = self.entries(brace + 1, brace, level)
-        return Block(type_, entries, start=start, end=end, source=self.source), end
+        entries, end = self.entries(brace + 1, brace, level, path)
+        node = Block(type_, entries, start=start, end=end, source=self.source, index_path=path)
+        return node, end
 
-    def entries(self, pos: int, opening: int, level: int) -> tuple[tuple[Entry, ...], int]:
+    def entries(
+        self, pos: int, opening: int, level: int, path: tuple[int, ...] = (), offset: int = 0
+    ) -> tuple[tuple[Entry, ...], int]:
         """Reads entries up to the closing `}`; `level` is the level of this body."""
         text = self.text
         out: list[Entry] = []
@@ -434,14 +439,21 @@ class _Reader:
                 return tuple(out), pos + 1
             start = pos
             try:
-                pos = self.entry(pos, level, out, first_seen)
+                pos = self.entry(pos, level, out, first_seen, path + (offset + len(out),))
             except TDLSyntaxError as error:
                 if self.errors is None:
                     raise
                 self.absorb(error)  # a bad entry is skipped to the end of its line
                 pos = max(self.resync(self.last_at), start + 1)
 
-    def entry(self, pos: int, level: int, out: list[Entry], first_seen: dict[str, int]) -> int:
+    def entry(
+        self,
+        pos: int,
+        level: int,
+        out: list[Entry],
+        first_seen: dict[str, int],
+        path: tuple[int, ...],
+    ) -> int:
         """Reads one entry at `pos`, adds it to `out` and returns where it ends."""
         text = self.text
         if text[pos] == "#":
@@ -453,11 +465,11 @@ class _Reader:
             self.fail("tdl-unexpected-text", pos)
         word = key.group()
         if word == "If":
-            node, end = self.if_(pos, key.end(), level)
+            node, end = self.if_(pos, key.end(), level, path)
             out.append(node)
             return end
         if word == "For":
-            loop, end = self.for_(pos, key.end(), level)
+            loop, end = self.for_(pos, key.end(), level, path)
             out.append(loop)
             return end
         if word == "Else":
@@ -485,7 +497,7 @@ class _Reader:
         if char == "{":
             if word in _RESERVED:
                 self.fail("tdl-reserved-name", pos)
-            block, end = self.block(pos, word, after, level + 1)
+            block, end = self.block(pos, word, after, level + 1, path)
             out.append(block)
             return end
         self.fail(
@@ -502,7 +514,7 @@ class _Reader:
             end -= 1
         return Comment(text[at + 1 : end].strip(), start=at, end=end, source=self.source)
 
-    def if_(self, start: int, after: int, level: int) -> tuple[If, int]:
+    def if_(self, start: int, after: int, level: int, path: tuple[int, ...] = ()) -> tuple[If, int]:
         text = self.text
         at = _skip(_INLINE, text, after)
         if not text.startswith("{{", at):
@@ -523,7 +535,7 @@ class _Reader:
             )
         if level + 1 > self.limits.max_depth:
             self.too_deep(brace)
-        body, end = self.entries(brace + 1, brace, level + 1)
+        body, end = self.entries(brace + 1, brace, level + 1, path)
         else_body: tuple[Entry, ...] | None = None
         # Else follows the closing brace, on the same line or after newlines and comments.
         look = self.trivia(end)
@@ -539,10 +551,15 @@ class _Reader:
                 )
             if level + 1 > self.limits.max_depth:
                 self.too_deep(else_brace)
-            else_body, end = self.entries(else_brace + 1, else_brace, level + 1)
-        return If(condition, body, else_body, start=start, end=end, source=self.source), end
+            else_body, end = self.entries(else_brace + 1, else_brace, level + 1, path, len(body))
+        node = If(
+            condition, body, else_body, start=start, end=end, source=self.source, index_path=path
+        )
+        return node, end
 
-    def for_(self, start: int, after: int, level: int) -> tuple[For, int]:
+    def for_(
+        self, start: int, after: int, level: int, path: tuple[int, ...] = ()
+    ) -> tuple[For, int]:
         text = self.text
         hint = "Write For item In {{ items }} Key {{ key }} { }"
         at = _skip(_INLINE, text, after)
@@ -570,8 +587,17 @@ class _Reader:
             self.fail("tdl-unexpected-text", brace, message="A For needs a { after Key.", hint=hint)
         if level + 1 > self.limits.max_depth:
             self.too_deep(brace)
-        body, end = self.entries(brace + 1, brace, level + 1)
-        node = For(variable.group(), items, key, body, start=start, end=end, source=self.source)
+        body, end = self.entries(brace + 1, brace, level + 1, path)
+        node = For(
+            variable.group(),
+            items,
+            key,
+            body,
+            start=start,
+            end=end,
+            source=self.source,
+            index_path=path,
+        )
         return node, end
 
     # values

@@ -1,0 +1,8 @@
+{
+  "edit": {
+    "call": "with_child",
+    "block": "Shell_Root.Main",
+    "text": "Icon {\n  Name: Ok\n}",
+    "index": null
+  }
+}

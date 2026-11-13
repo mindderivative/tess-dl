@@ -6,9 +6,13 @@ where a new line goes are G24 and G32 in docs/decisions.md.
 """
 
 import re
+import textwrap
+from collections.abc import Sequence
 
 from ._parser import _KEY, _RESERVED, loads
-from .tree import Block, Document, Property
+from .errors import TDLSyntaxError
+from .origin import Origin
+from .tree import Block, Comment, Document, Entry, For, If, Property
 
 VERSION_KEYS = frozenset({"TDL", "Shell"})
 _UNSAFE_WORD = re.compile(r"[\r\n]|[ \t]#")
@@ -149,3 +153,264 @@ def _check_value(value: str) -> None:
         raise ValueError(f"{value!r} is not a single TDL value")
     if entries[0].value.end != len(_PROBE_HEAD) + len(value):
         raise ValueError(f"{value!r} is not a single TDL value: it has text after the value")
+
+
+# Block edits (T-011): without_property, with_child, without_child, move_child.
+#
+# Each one splices text at the entries' own positions, rereads the result, and then checks that
+# the block holds exactly the entries it should: the old ones, minus or plus the one named. An edit
+# that would change anything else (a text that reads differently in its new place) is refused.
+
+_BLOCK_PROBE_HEAD = "---\nTDL: 0.1\nName: T\n---\n"
+_PROBE_LINES = _BLOCK_PROBE_HEAD.count("\n")
+_PROBE_BYTES = len(_BLOCK_PROBE_HEAD)
+
+
+def _source_of(block: Block) -> tuple[str, str | None]:
+    source = block.source
+    if source is None:
+        raise ValueError("A block built in code has no text to edit")
+    return source.text, source.path
+
+
+def _own_line(text: str, entry: Entry) -> tuple[bool, bool]:
+    """Whether the entry starts its line (only space before it) and ends it (only a comma,
+    space or comment after it)."""
+    before = text[_line_start(text, entry.start) : entry.start]
+    line_end = text.find("\n", entry.end)
+    rest = text[entry.end : len(text) if line_end < 0 else line_end]
+    after = rest.strip(" \t\r,")
+    return before.strip(" \t\r") == "", after == "" or after.startswith("#")
+
+
+def _removal_span(text: str, entry: Entry) -> tuple[int, int]:
+    """The text to delete with an entry: its lines, or it and one separating comma."""
+    starts, ends = _own_line(text, entry)
+    if starts and ends:
+        return _line_start(text, entry.start), _next_line(text, entry.end)
+    if ends:  # it follows something on its first line: take the space before it
+        start = entry.start
+        while start > 0 and text[start - 1] in " \t":
+            start -= 1
+        return start, entry.end
+    after = entry.end
+    while after < len(text) and text[after] in " \t":
+        after += 1
+    if text[after : after + 1] == ",":  # `A: 1, B: 2`: take the comma and space after it
+        after += 1
+        while after < len(text) and text[after] in " \t":
+            after += 1
+        return entry.start, after
+    before = entry.start
+    while before > 0 and text[before - 1] in " \t":
+        before -= 1
+    if text[before - 1 : before] == ",":  # the last of `A: 1, B: 2 }`: take the comma before it
+        return before - 1, entry.end
+    return entry.start, after  # the only entry of `{ A: 1 }`: take the space after it
+
+
+def _inside(entry: Entry, span: tuple[int, int]) -> bool:
+    return span[0] <= entry.start and entry.end <= span[1]
+
+
+def _apply(block: Block, new_text: str, expected: tuple[Entry, ...]) -> Document:
+    """Reread `new_text`; the block must hold exactly `expected`, or the edit is refused."""
+    from ._parser import loads
+
+    source = block.source
+    assert source is not None
+    doc = loads(new_text, path=source.path)
+    try:
+        found = doc.at(block.index_path)
+    except IndexError, ValueError:
+        found = None
+    if not isinstance(found, Block) or found.entries != expected:
+        raise ValueError("This edit would change more than the entry it names, so it was refused")
+    return doc
+
+
+def _resolve(block: Block, child: Block | If | For | int) -> tuple[int, Entry]:
+    entries = block.entries
+    if isinstance(child, int) and not isinstance(child, bool):
+        if not 0 <= child < len(entries):
+            raise IndexError(f"index {child}: this block has {len(entries)} entries")
+        index = child
+    else:
+        index = next((i for i, e in enumerate(entries) if e is child), -1)
+        if index < 0:
+            raise ValueError(
+                "The child is not an entry of this block (is it from an older Document?)"
+            )
+    entry = entries[index]
+    if not isinstance(entry, Block | If | For):
+        raise ValueError(f"Entry {index} is a {type(entry).__name__}, not a block, If or For")
+    return index, entry
+
+
+def without_property(block: Block, key: str) -> Document:
+    text, _ = _source_of(block)
+    target = next((e for e in block.entries if isinstance(e, Property) and e.key == key), None)
+    if target is None:
+        raise KeyError(key)
+    return _remove(block, text, target)
+
+
+def _remove(block: Block, text: str, target: Entry) -> Document:
+    span = _removal_span(text, target)
+    expected = tuple(e for e in block.entries if not _inside(e, span))
+    return _apply(block, text[: span[0]] + text[span[1] :], expected)
+
+
+def without_child(block: Block, child: Block | If | For | int) -> Document:
+    text, _ = _source_of(block)
+    _, entry = _resolve(block, child)
+    return _remove(block, text, entry)
+
+
+def _dedent(text: str) -> list[str]:
+    """The lines of `text` without their common indentation or blank lines at either end."""
+    lines = text.replace("\r\n", "\n").split("\n")
+    while lines and not lines[-1].strip():
+        lines.pop()
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    return textwrap.dedent("\n".join(lines)).split("\n") if lines else []
+
+
+def _shift(origin: Origin) -> Origin:
+    """An origin in the probe file as an origin in the block text."""
+    return Origin(
+        "<block_text>",
+        max(1, origin.line - _PROBE_LINES),
+        origin.column,
+        max(1, origin.end_line - _PROBE_LINES),
+        origin.end_column,
+        max(0, origin.offset - _PROBE_BYTES),
+    )
+
+
+def _probe(lines: list[str]) -> Block:
+    """Read `lines` as the root block of a file; the errors point inside the lines."""
+    from ._parser import loads
+
+    try:
+        return loads(_BLOCK_PROBE_HEAD + "\n".join(lines) + "\n").root
+    except TDLSyntaxError as error:
+        message = error.message
+        if error.code == "tdl-duplicate-key":
+            message = re.sub(
+                r"line (\d+)", lambda m: f"line {int(m.group(1)) - _PROBE_LINES}", message
+            )
+        raise TDLSyntaxError(
+            error.code,
+            message,
+            error.hint,
+            _shift(error.origin),
+            tuple(_shift(o) for o in error.related),
+        ) from None
+
+
+def _lines_text(lines: list[str], indent: str, eol: str) -> str:
+    return "".join((indent + line if line else "") + eol for line in lines)
+
+
+def _inline_text(lines: list[str], continuation: str, eol: str) -> str:
+    return lines[0] + "".join(eol + continuation + line if line else eol for line in lines[1:])
+
+
+def _plan_insert(
+    text: str, block: Block, rest: Sequence[Entry], index: int, lines: list[str]
+) -> tuple[int, int, str]:
+    """The splice (start, end, new text) that puts `lines`, a dedented block, at `index` among
+    the entries `rest` of `block`: on its own lines where the neighbours are, else inline."""
+    head_indent = _indent(text, block.start)
+    continuation = head_indent + "  "
+    if index < len(rest):
+        target = rest[index]
+        starts, _ = _own_line(text, target)
+        if starts:
+            at = _line_start(text, target.start)
+            return at, at, _lines_text(lines, _indent(text, target.start), _eol_before(text, at))
+        # (an index never points at a comment at the end of a line: `_settle` moved it)
+        eol = _eol_before(text, _next_line(text, target.start))
+        return target.start, target.start, _inline_text(lines, continuation, eol) + ", "
+    if rest:
+        last = rest[-1]
+        starts, ends = _own_line(text, last)
+        if ends:
+            at = _next_line(text, last.end)
+            indent = _indent(text, last.start) if starts else continuation
+            return at, at, _lines_text(lines, indent, _eol_before(text, at))
+        eol = _eol_before(text, _next_line(text, last.end))
+        return last.end, last.end, ", " + _inline_text(lines, continuation, eol)
+    brace = text.index("{", block.start + len(block.type))
+    after = text[brace + 1 : _next_line(text, brace)].strip(" \t\r\n")
+    if after == "" or after.startswith("#"):
+        at = _next_line(text, brace)
+        return at, at, _lines_text(lines, continuation, _eol_before(text, at))
+    eol = _eol_before(text, _next_line(text, brace))
+    return brace + 1, brace + 1, " " + _inline_text(lines, continuation, eol)
+
+
+def _settle(text: str, entries: Sequence[Entry], index: int) -> int:
+    """Move an index that points at a comment at the end of a line past that comment, so a new
+    entry never lands between an entry and its own trailing comment."""
+    while (
+        index < len(entries)
+        and isinstance(entries[index], Comment)
+        and not _own_line(text, entries[index])[0]
+    ):
+        index += 1
+    return index
+
+
+def with_child(block: Block, block_text: str, index: int | None) -> tuple[Document, Block]:
+    text, _ = _source_of(block)
+    entries = block.entries
+    if index is None:
+        index = len(entries)
+    elif isinstance(index, bool) or not 0 <= index <= len(entries):
+        raise IndexError(f"index {index}: this block has {len(entries)} entries")
+    index = _settle(text, entries, index)
+    lines = _dedent(block_text)
+    child = _probe(lines)
+    start, end, new = _plan_insert(text, block, entries, index, lines)
+    doc = _apply(
+        block, text[:start] + new + text[end:], entries[:index] + (child,) + entries[index:]
+    )
+    added = doc.at(block.index_path + (index,))
+    assert isinstance(added, Block)
+    return doc, added
+
+
+def move_child(block: Block, child: Block | If | For | int, to: int) -> Document:
+    from ._parser import loads
+
+    text, path = _source_of(block)
+    index, entry = _resolve(block, child)
+    span = _removal_span(text, entry)
+    moved = tuple(e for e in block.entries if _inside(e, span))
+    rest = tuple(e for e in block.entries if not _inside(e, span))
+    if isinstance(to, bool) or not 0 <= to <= len(rest):
+        raise IndexError(f"to {to}: there are {len(rest)} other entries to place it among")
+    to = _settle(text, rest, to)
+    if to == index:
+        return loads(text, path=path)
+    starts, ends = _own_line(text, entry)
+    if starts and ends:
+        lines = _dedent(text[span[0] : span[1]])
+    elif "\n" in text[entry.start : entry.end]:
+        raise ValueError(
+            "Only an entry on its own lines, or one on a single line, can be moved; use "
+            "without_child and with_child for this one"
+        )
+    else:
+        lines = [text[entry.start : entry.end]]
+    start, end, new = _plan_insert(text, block, rest, to, lines)
+    if start >= span[1]:
+        new_text = text[: span[0]] + text[span[1] : start] + new + text[end:]
+    elif end <= span[0]:
+        new_text = text[:start] + new + text[end : span[0]] + text[span[1] :]
+    else:
+        raise ValueError("That entry cannot be moved there")
+    return _apply(block, new_text, rest[:to] + moved + rest[to:])

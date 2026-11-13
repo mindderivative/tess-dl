@@ -1,0 +1,9 @@
+{
+  "edit": {
+    "call": "with_child",
+    "block": "Shell_Root",
+    "text": "A { }\nB { }",
+    "index": null
+  },
+  "raises": "tdl-many-roots"
+}

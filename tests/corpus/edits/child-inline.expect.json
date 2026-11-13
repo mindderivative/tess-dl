@@ -1,0 +1,8 @@
+{
+  "edit": {
+    "call": "with_child",
+    "block": "Shell_Root.p1",
+    "text": "Icon { }",
+    "index": null
+  }
+}
