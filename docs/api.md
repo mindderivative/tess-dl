@@ -100,7 +100,7 @@ The library gives each value a lexical kind and the text it came from. It does n
 
 A value that is exactly one slot is a `Slot`; text with a slot inside is a `Template`, matching the rule in [TDL Language > Values](language.md).
 
-`Slot.text_origin` is built to be handed to TEL. The library does not import TEL. The shell converts: `tel.Origin(file=o.file, line=o.line, column=o.column)`.
+`Slot.text_origin` is built to be handed to TEL. The library does not import TEL. The shell converts: `tess_el.Origin(file=o.file, line=o.line, column=o.column)`.
 
 ### Editing
 
