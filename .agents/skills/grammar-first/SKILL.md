@@ -23,7 +23,7 @@ The 12 open questions are in the First Slice note ("Ambiguities to Settle in the
 
 ## Error wording
 
-An error says what happened in one plain sentence and the hint says what to write. It names what the author wrote, not the parser state: "This colour needs quotes. Write "#ffffff"." not "unexpected token HASH". `tdl-double-close`'s hint says `} }`. `str(error)` is `file:line:column: message (hint)`. No colour or symbol carries meaning (screen readers).
+An error says what happened in one plain sentence and the hint says what to write. It names what the author wrote, not the parser state: "This colour needs quotes. Write "#ffffff"." not "unexpected token HASH". `tdl-unexpected-text` on the old `{{ }}` slot says to write `<| |>`. `str(error)` is `file:line:column: message (hint)`. No colour or symbol carries meaning (screen readers).
 
 ## When the vault and the repo disagree
 

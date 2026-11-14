@@ -1,10 +1,22 @@
 # Changelog
 
 All notable changes to the package. Versions follow [Semantic Versioning](https://semver.org); below
-1.0 a minor version may break the API. The language version is separate and is 0.1 for every release
+1.0 a minor version may break the API. The language version is separate and is 0.1 up to package 0.1.1 and 0.2 after it
 here (`docs/versioning.md`).
 
 ## Unreleased
+
+### Breaking: language 0.2 (G38)
+
+- A slot is written `<| expression |>`; `{{ }}` is no longer a slot. `{{` in an unquoted value is
+  `tdl-unexpected-text` with a hint. Files declare `TDL: 0.2`; `tess_dl.LANGUAGE_VERSION` is `"0.2"`.
+  `tools/migrate_slots.py` rewrites 0.1 files (run it with `uv run --no-project --with
+  tesserae-dl==0.1.1`). `If.with_condition`, `For.with_items` and `For.with_key` take the new form.
+- `tdl-double-close` is removed: `}}` is two closing braces, and a slot may hold braces, so
+  `<| {'a': {'b': 1}} |>` is one slot. 22 error codes still: `tdl-duplicate-variable` is new.
+- `For` takes several loop variables, `For i, item In <| enumerate(items) |> Key <| item.id |> { }`:
+  `For.variables` (a tuple; `For.variable` is the first), `with_variable("i, item")` or a sequence;
+  `canonical()` writes a list for two or more names.
 
 ### Added
 

@@ -5,7 +5,7 @@ Shell reads: blocks, properties and values. `tess_dl` is the Python library that
 that keeps everything in the file (comments, layout, positions), reports every mistake with
 `file:line:column`, and writes the text back unchanged except for an edit you ask for.
 
-> **Status:** alpha, package 0.1.1, language version 0.1. The import name changed from
+> **Status:** alpha, package 0.1.1 (language 0.1; `main` reads language 0.2, which writes slots `<| |>`, unreleased). The import name changed from
 > `tdl` to `tess_dl` in 0.1.1 (see [`CHANGELOG.md`](CHANGELOG.md)). The API may change
 > before 1.0 (a minor version may break it; see [`docs/versioning.md`](docs/versioning.md)).
 > Documentation site: <https://mindderivative.github.io/tess-dl/>. The language is in [`docs/language.md`](docs/language.md), the API in [`docs/api.md`](docs/api.md),
@@ -22,7 +22,7 @@ import tess_dl
 
 text = """\
 ---
-TDL: 0.1
+TDL: 0.2
 Name: Shell_Root
 ---
 Shell {

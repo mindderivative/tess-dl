@@ -4,12 +4,12 @@ Two version numbers, kept apart:
 
 - **Package version** (`tess_dl.__version__`, `pyproject.toml`): [Semantic Versioning](https://semver.org).
   Below 1.0, a minor bump may break the API; the changelog says how.
-- **Language version** (`tess_dl.LANGUAGE_VERSION`, `"0.1"`): what a file declares in its metadata
-  (`TDL: 0.1`) so later language changes do not break old files. A file declares a major and a
+- **Language version** (`tess_dl.LANGUAGE_VERSION`, `"0.2"`): what a file declares in its metadata
+  (`TDL: 0.2`) so later language changes do not break old files. A file declares a major and a
   minor; a file whose major is newer than the library's is `tdl-unsupported-version`. The package
   patch number never changes the language. Until 1.0 a minor bump may change the language.
 
-The two numbers are independent: package `0.1.0` and language `0.1` are both correct today.
+The two numbers are independent: package `0.1.1` and language `0.2` are both correct today.
 
 The PyPI name is `tesserae-dl`; the import name is `tess_dl` and the repository is `tess-dl`. Every
 release is described in `CHANGELOG.md`; the steps to make one are in the `release-checklist` skill,

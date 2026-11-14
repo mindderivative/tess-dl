@@ -21,7 +21,7 @@ import tess_dl
 BUDGET_100K = 0.020  # seconds for a 100 KB file
 BUDGET_1M = 0.250  # seconds for a file at the 1 MiB limit
 SIZES = (250_000, 500_000, 1_000_000)
-HEAD = "---\nTDL: 0.1\nName: Bench_Root\nShell: 0.1\nUID: 0192d3c4-7a1e-7c2f\n---\n"
+HEAD = "---\nTDL: 0.2\nName: Bench_Root\nShell: 0.1\nUID: 0192d3c4-7a1e-7c2f\n---\n"
 
 MONITOR = """\
   # one monitor
@@ -35,14 +35,14 @@ MONITOR = """\
       Color: rgba(0 0 0 0.5)
       Padding: [2, 2, 2, 2]
       # percent
-      Label {{ Text: Battery {{{{ battery.percent }}}}% }}
-      If {{{{ battery.low }}}} {{
+      Label {{ Text: Battery <| battery.percent |>% }}
+      If <| battery.low |> {{
         Icon {{ Name: Warning, Size: 16px }}
       }} Else {{
         Icon {{ Name: "Ok \\u00e9" }}
       }}
-      For item In {{{{ items }}}} Key {{{{ item.id }}}} {{
-        Label {{ Text: {{{{ item.title }}}} }}
+      For item In <| items |> Key <| item.id |> {{
+        Label {{ Text: <| item.title |> }}
       }}
     }}
   }}
@@ -74,7 +74,7 @@ def adversarial(size: int) -> dict[str, str]:
     """Inputs built to be slow if any step is super-linear."""
     body = size - len(HEAD) - 20
     return {
-        "many {{ }} on one line": HEAD + "Shell {\n  Text: " + "{{ a }}" * (body // 7) + "\n}\n",
+        "many <| |> on one line": HEAD + "Shell {\n  Text: " + "<| a |>" * (body // 7) + "\n}\n",
         "one very long word": HEAD + "Shell {\n  Text: " + "x" * body + "\n}\n",
         "long string": HEAD + 'Shell {\n  Text: "' + "x" * body + '"\n}\n',
         "huge list": HEAD + "Shell {\n  Items: [" + ", ".join(["1"] * (body // 3)) + "]\n}\n",

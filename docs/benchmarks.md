@@ -35,7 +35,7 @@ About 1 MB each; `parse` time at 250 KB, 500 KB and 1 MB, and the ratio per doub
 
 | Input | 250 KB | 500 KB | 1 MB | Per doubling |
 |---|---|---|---|---|
-| Many `{{ a }}` on one line | 35.68 ms | 72.68 ms | 145.42 ms | x2.04, x2.00 |
+| Many `<| a |>` on one line | 35.68 ms | 72.68 ms | 145.42 ms | x2.04, x2.00 |
 | One very long word | 3.03 ms | 5.83 ms | 11.46 ms | x1.92, x1.96 |
 | One long string | 0.25 ms | 0.45 ms | 0.86 ms | x1.77, x1.94 |
 | A list of 330,000 numbers | 139.28 ms | 278.67 ms | 558.31 ms | x2.00, x2.00 |

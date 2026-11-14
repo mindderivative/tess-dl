@@ -30,5 +30,5 @@ The library's promise: `tess_dl.dumps(tess_dl.loads(text)) == text` for any file
 
 - Does any code path build the output from the tree for a parsed document? It should not.
 - Is every character of the input covered by a span or by trivia between spans? A gap is a byte `dumps` can lose.
-- `}}` versus `} }`, `{{ '}}' }}`, a `#` inside a string or a slot, and `\r\n` inside an edit: each has a case.
+- `}}` versus `} }` (both close two blocks), `<| '|>' |>`, `<| {'a': {'b': 1}} |>`, a `#` inside a string or a slot, and `\r\n` inside an edit: each has a case.
 - A property test that cannot fail is not a test: shrink a known bug in (drop a space in `dumps`) and see the property catch it, then restore.
