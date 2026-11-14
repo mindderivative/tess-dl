@@ -1,10 +1,10 @@
 # Changelog
 
 All notable changes to the package. Versions follow [Semantic Versioning](https://semver.org); below
-1.0 a minor version may break the API. The language version is separate and is 0.1 up to package 0.1.1 and 0.2 after it
+1.0 a minor version may break the API. The language version is separate and is 0.1 up to package 0.1.1 and 0.2 from package 0.2.0
 here (`docs/versioning.md`).
 
-## Unreleased
+## 0.2.0
 
 ### Breaking: language 0.2 (G38)
 
