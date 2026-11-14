@@ -1,0 +1,10 @@
+{
+  "edit": {
+    "call": "with_condition",
+    "at": [
+      0,
+      3
+    ],
+    "text": "{{ not b }}"
+  }
+}

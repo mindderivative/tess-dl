@@ -52,6 +52,10 @@ EDIT_CALLS = {
     "with_child": {"call", "block", "text", "index"},
     "without_child": {"call", "block", "index"},
     "move_child": {"call", "block", "index", "to"},
+    "with_items": {"call", "at", "text"},
+    "with_key": {"call", "at", "text"},
+    "with_condition": {"call", "at", "text"},
+    "with_variable": {"call", "at", "name"},
 }
 VALUE_KEYS = [
     {"word"},

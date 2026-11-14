@@ -259,6 +259,19 @@ class If(_Node):
     else_body: tuple[Entry, ...] | None
     index_path: tuple[int, ...] = field(default=(), compare=False, repr=False, kw_only=True)
 
+    def with_condition(self, slot_text: str) -> Document:
+        """A new document with the condition `{{ ... }}` replaced by `slot_text`.
+
+        `slot_text` is the slot as written in a file, braces included (`"{{ battery.low }}"`);
+        space around it is ignored and the inside is kept byte for byte. Only the bytes of the
+        old condition change, and every `index_path` stays valid. An invalid slot is a
+        `TDLSyntaxError` with origins inside `slot_text` (file `<slot_text>`); valid TDL that is
+        not exactly one slot, or a node built in code, is `ValueError`.
+        """
+        from . import _edit
+
+        return _edit.with_condition(self, slot_text)
+
     def canonical(self) -> Data:
         return {
             "if": self.condition.canonical(),
@@ -276,6 +289,33 @@ class For(_Node):
     key: Slot
     body: tuple[Entry, ...]
     index_path: tuple[int, ...] = field(default=(), compare=False, repr=False, kw_only=True)
+
+    def with_items(self, slot_text: str) -> Document:
+        """A new document with the list slot after `In` replaced by `slot_text`: the slot as
+        written in a file, braces included. Same guarantees and errors as
+        `If.with_condition`."""
+        from . import _edit
+
+        return _edit.with_items(self, slot_text)
+
+    def with_key(self, slot_text: str) -> Document:
+        """A new document with the slot after `Key` replaced by `slot_text`. Same guarantees
+        and errors as `If.with_condition`."""
+        from . import _edit
+
+        return _edit.with_key(self, slot_text)
+
+    def with_variable(self, name: str) -> Document:
+        """A new document with the loop variable renamed to `name`.
+
+        Only the declaration changes: a reference to the old name inside a slot (`{{ x.id }}`)
+        is not renamed, because a slot is opaque text to this library. `ValueError` if `name` is
+        not a key (a letter, then letters, digits and `_`), is reserved (`If`, `Else`, `For`,
+        `In`, `Key`) or the node was built in code.
+        """
+        from . import _edit
+
+        return _edit.with_variable(self, name)
 
     def canonical(self) -> Data:
         return {

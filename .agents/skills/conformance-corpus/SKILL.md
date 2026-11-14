@@ -24,7 +24,7 @@ One parametrised pytest module walks the folder, so a new case needs no test cod
 
 - `ok`: `loads` succeeds and `canonical()` equals the expectation (step 3, `test_ok_case_reads_to_the_canonical_tree`); `dumps(loads(x)) == x` byte for byte and `dumps(load(BytesIO(data))) == x` (step 5, `test_ok_case_round_trips_byte_for_byte`). Every `ok` case is a round-trip case. See G26.
 - `errors`: `loads` raises `TDLSyntaxError` with the first listed code, line and column; `parse` returns the whole list (up to 50), in source order.
-- `edits`: three files per case (G23): `<case>.tdl`, `<case>.expect.json` with `{"edit": {"call": "with_metadata|without_metadata|with_property|replace|without_property|with_child|without_child|move_child", ...}}` (the block calls take `block`, a dotted `find` path) (a refused edit adds `"raises": "<code>"` and has no result file) and `<case>.result.tdl`, the expected output bytes. The edit changes no other byte (`lossless-roundtrip`).
+- `edits`: three files per case (G23): `<case>.tdl`, `<case>.expect.json` with `{"edit": {"call": "with_metadata|without_metadata|with_property|replace|without_property|with_child|without_child|move_child|with_items|with_key|with_condition|with_variable", ...}}` (the block calls take `block`, a dotted `find` path; the `If` and `For` calls take `at`, an index path) (a refused edit adds `"raises": "<code>"` and has no result file) and `<case>.result.tdl`, the expected output bytes. The edit changes no other byte (`lossless-roundtrip`).
 - A `.tdl` with no `.expect.json`, or the reverse, fails the run.
 - `tdl-bad-encoding` and BOM/CRLF cases are raw bytes: never open `.tdl` in text mode.
 

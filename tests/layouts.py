@@ -26,6 +26,8 @@ ENTRIES = [
     "Panel { Name: p1, Width: 200 }",
     "If {{ c }} { Label { } }",
     "For x In {{ xs }} Key {{ x }} { Label { } }",
+    "If {{ c }} { Label { } } Else { Bar { Name: b }, For i In {{ ys }} Key {{ i }} { Z { } } }",
+    "If {{ d }} { X { } } Else { If {{ e }} { Y { } } Else { W: 1 } }",
     "# a comment",
     "",
     "Name: caf\u00e9_\U0001f600",
