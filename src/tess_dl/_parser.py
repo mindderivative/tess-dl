@@ -32,7 +32,7 @@ from .tree import (
     Word,
 )
 
-LANGUAGE_VERSION = "0.1"
+LANGUAGE_VERSION = "0.2"
 _MAJOR = int(LANGUAGE_VERSION.split(".")[0])
 
 _RESERVED = frozenset({"If", "Else", "For", "In", "Key"})
@@ -51,12 +51,12 @@ _ELSE = re.compile(r"Else(?![A-Za-z0-9_])")
 _IN = re.compile(r"In(?![A-Za-z0-9_])")
 _KEYWORD = re.compile(r"Key(?![A-Za-z0-9_])")
 _TOKEN = re.compile(r"[^ \t\r\n,)]+")
-_SLOT_SCAN = re.compile(r"""\}\}|['"\n]""")
+_SLOT_SCAN = re.compile(r"""\|>|['"\n]""")  # inside a slot: its close, a quote or a line end
 _QUOTE_SCAN = {q: re.compile(rf"[\\\n{q}]") for q in "\"'"}
-# What ends an unquoted value: a line end, `,`, `}`, a `{` (a slot or a mistake), ` #`.
+# What ends an unquoted value: a line end, `,`, `}`, a `{` (a mistake), a slot `<|`, ` #`.
 _RUN_END = {
-    False: re.compile(r"[\n{,}]|[ \t]#"),
-    True: re.compile(r"[\n{,}\]]|[ \t]#"),  # inside a list `]` ends it too
+    False: re.compile(r"[\n{,}]|<\||[ \t]#"),
+    True: re.compile(r"[\n{,}\]]|<\||[ \t]#"),  # inside a list `]` ends it too
 }
 _ESCAPES = {"\\": "\\", '"': '"', "'": "'", "n": "\n", "t": "\t"}
 _SPACE_AFTER_HASH = frozenset({"", " ", "\t", "\r", "\n"})
@@ -85,7 +85,6 @@ class _Reader:
         self.source = Source(text, path)
         self.errors: list[TDLSyntaxError] | None = None  # a list when `parse` collects errors
         self.last_at = 0  # where the last error was raised: reading resumes after it
-        self.pair_close = -1  # the second `}` of a `}}` that was already reported
 
     # errors
 
@@ -373,13 +372,8 @@ class _Reader:
             at = self.trivia(pos)
             if at >= self.n:
                 return
-            if at == self.pair_close:  # the second `}` of a `}}` that was already reported
-                pos = at + 1
-                continue
             if text[at] == "}":
-                pair = text.startswith("}}", at)
-                self.signal("tdl-double-close" if pair else "tdl-unexpected-close", at)
-                self.pair_close = at + 1 if pair else -1
+                self.signal("tdl-unexpected-close", at)
                 pos = at + 1
                 continue
             head = _KEY.match(text, at)
@@ -395,8 +389,6 @@ class _Reader:
                 pos = self.resync(at)
 
     def close_without_block(self, at: int) -> NoReturn:
-        if self.text.startswith("}}", at):
-            self.fail("tdl-double-close", at)
         self.fail("tdl-unexpected-close", at)
 
     def trivia(self, pos: int) -> int:
@@ -433,9 +425,6 @@ class _Reader:
                 self.signal("tdl-unclosed-block", opening)
                 return tuple(out), self.n
             if text[pos] == "}":
-                if text.startswith("}}", pos):
-                    self.signal("tdl-double-close", pos)
-                    self.pair_close = pos + 1  # the pair closes this block and the next one
                 return tuple(out), pos + 1
             start = pos
             try:
@@ -517,12 +506,9 @@ class _Reader:
     def if_(self, start: int, after: int, level: int, path: tuple[int, ...] = ()) -> tuple[If, int]:
         text = self.text
         at = _skip(_INLINE, text, after)
-        if not text.startswith("{{", at):
-            self.fail(
-                "tdl-unexpected-text",
-                at,
-                message="An If needs a condition in {{ }}.",
-                hint="Write If {{ condition }} { }",
+        if not text.startswith("<|", at):
+            self.slot_expected(
+                at, "An If needs a condition in <| |>.", "Write If <| condition |> { }"
             )
         condition, at = self.slot(at)
         brace = _skip(_INLINE, text, at)
@@ -531,7 +517,7 @@ class _Reader:
                 "tdl-unexpected-text",
                 brace,
                 message="An If needs a { after its condition.",
-                hint="Write If {{ condition }} { }",
+                hint="Write If <| condition |> { }",
             )
         if level + 1 > self.limits.max_depth:
             self.too_deep(brace)
@@ -547,7 +533,7 @@ class _Reader:
                     "tdl-unexpected-text",
                     else_brace,
                     message="An Else needs a { after it.",
-                    hint="There is no Else If: write Else { If {{ condition }} { } }",
+                    hint="There is no Else If: write Else { If <| condition |> { } }",
                 )
             if level + 1 > self.limits.max_depth:
                 self.too_deep(else_brace)
@@ -561,26 +547,36 @@ class _Reader:
         self, start: int, after: int, level: int, path: tuple[int, ...] = ()
     ) -> tuple[For, int]:
         text = self.text
-        hint = "Write For item In {{ items }} Key {{ key }} { }"
+        hint = "Write For item In <| items |> Key <| key |> { }"
         at = _skip(_INLINE, text, after)
-        variable = _KEY.match(text, at)
-        if variable is None:
-            self.fail("tdl-unexpected-text", at, message="A For needs a variable name.", hint=hint)
-        if variable.group() in _RESERVED:
-            self.fail("tdl-reserved-name", at)
-        at = _skip(_INLINE, text, variable.end())
+        names: list[str] = []
+        while True:
+            variable = _KEY.match(text, at)
+            if variable is None:
+                message = "A For needs a variable name."
+                self.fail("tdl-unexpected-text", at, message=message, hint=hint)
+            name = variable.group()
+            if name in _RESERVED:
+                self.fail("tdl-reserved-name", at)
+            if name in names:
+                self.fail("tdl-duplicate-variable", at)
+            names.append(name)
+            at = _skip(_INLINE, text, variable.end())
+            if not text.startswith(",", at):
+                break
+            at = _skip(_INLINE, text, at + 1)
         if _IN.match(text, at) is None:
             self.fail("tdl-unexpected-text", at, message="This For is missing In.", hint=hint)
         at = _skip(_INLINE, text, at + 2)
-        if not text.startswith("{{", at):
-            self.fail("tdl-unexpected-text", at, message="In needs a list in {{ }}.", hint=hint)
+        if not text.startswith("<|", at):
+            self.slot_expected(at, "In needs a list in <| |>.", hint)
         items, at = self.slot(at)
         at = _skip(_INLINE, text, at)
         if _KEYWORD.match(text, at) is None:
             self.fail("tdl-unexpected-text", at, message="This For is missing Key.", hint=hint)
         at = _skip(_INLINE, text, at + 3)
-        if not text.startswith("{{", at):
-            self.fail("tdl-unexpected-text", at, message="Key needs a value in {{ }}.", hint=hint)
+        if not text.startswith("<|", at):
+            self.slot_expected(at, "Key needs a value in <| |>.", hint)
         key, at = self.slot(at)
         brace = _skip(_INLINE, text, at)
         if text[brace : brace + 1] != "{":
@@ -589,7 +585,7 @@ class _Reader:
             self.too_deep(brace)
         body, end = self.entries(brace + 1, brace, level + 1, path)
         node = For(
-            variable.group(),
+            tuple(names),
             items,
             key,
             body,
@@ -663,19 +659,14 @@ class _Reader:
         while True:
             hit = pattern.search(text, seg)
             stop = self.n if hit is None else hit.start()
-            if hit is not None and text[stop] == "{":
-                if not text.startswith("{{", stop):
-                    self.fail(
-                        "tdl-unexpected-text",
-                        stop,
-                        message="A { cannot be part of an unquoted value.",
-                        hint="Quote the text, or write a block",
-                    )
+            if hit is not None and text[stop] == "<":
                 if stop > seg:
                     parts.append(text[seg:stop])
                 slot, seg = self.slot(stop)
                 parts.append(slot)
                 continue
+            if hit is not None and text[stop] == "{":
+                self.brace_in_value(stop)
             break
         tail = text[seg:stop].rstrip(" \t\r")
         end = seg + len(tail)
@@ -731,7 +722,7 @@ class _Reader:
             return self.string(at)
         if char == "[":
             return self.list_(at, level + 1)
-        if text.startswith("{{", at):
+        if text.startswith("<|", at):
             slot, end = self.slot(at)
             return slot, end
         if char == "#":
@@ -752,11 +743,14 @@ class _Reader:
         assert token is not None  # `char` is not whitespace, `,` or `)`
         brace = token.group().find("{")
         if brace >= 0:
+            self.brace_in_value(at + brace)
+        opener = token.group().find("<|")
+        if opener >= 0:
             self.fail(
                 "tdl-unexpected-text",
-                at + brace,
-                message="A { cannot be part of an unquoted value.",
-                hint="Quote the text, or write a block",
+                at + opener,
+                message="A slot in a call stands on its own.",
+                hint="Write <| expression |> as an argument of its own",
             )
         return self.scalar(at, token.end()), token.end()
 
@@ -813,15 +807,37 @@ class _Reader:
         node = String("".join(chunks), text[start:end], start=start, end=end, source=self.source)
         return node, end
 
+    def slot_expected(self, at: int, message: str, hint: str) -> NoReturn:
+        """A slot should start at `at`; text in the old `{{ }}` form (TDL 0.1) gets a pointer."""
+        if self.text.startswith("{{", at):
+            message = "A slot is written <| expression |>; {{ }} was the TDL 0.1 form."
+        self.fail("tdl-unexpected-text", at, message=message, hint=hint)
+
+    def brace_in_value(self, at: int) -> NoReturn:
+        """A `{` in an unquoted value: a mistake, or a slot written in the old `{{ }}` form."""
+        if self.text.startswith("{{", at):
+            self.fail(
+                "tdl-unexpected-text",
+                at,
+                message="A slot is written <| expression |>; {{ }} was the TDL 0.1 form.",
+                hint="Write <| expression |>",
+            )
+        self.fail(
+            "tdl-unexpected-text",
+            at,
+            message="A { cannot be part of an unquoted value.",
+            hint="Quote the text, or write a block",
+        )
+
     def slot(self, start: int) -> tuple[Slot, int]:
-        """`{{ text }}` ends at the first `}}` that is not inside a quoted string."""
+        """`<| text |>` ends at the first `|>` that is not inside a quoted string."""
         text = self.text
         pos = start + 2
         while True:
             hit = _SLOT_SCAN.search(text, pos)
             if hit is None or hit.group() == "\n":
                 self.fail("tdl-unclosed-slot", start)
-            if hit.group() == "}}":
+            if hit.group() == "|>":
                 close = hit.start()
                 break
             quote = hit.group()

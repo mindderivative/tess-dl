@@ -18,7 +18,7 @@ from .tree import Block, Comment, Document, Entry, For, If, Property, Slot
 VERSION_KEYS = frozenset({"TDL", "Shell"})
 _UNSAFE_WORD = re.compile(r"[\r\n]|[ \t]#")
 _ESCAPED = {"\\": "\\\\", '"': '\\"', "\n": "\\n", "\t": "\\t", "\r": "\\u000d"}
-_PROBE_HEAD = "---\nTDL: 0.1\nName: T\n---\nS {\nK: "
+_PROBE_HEAD = "---\nTDL: 0.2\nName: T\n---\nS {\nK: "
 
 
 # Text helpers. Positions are character offsets into the document text.
@@ -162,7 +162,7 @@ def _check_value(value: str) -> None:
 # the block holds exactly the entries it should: the old ones, minus or plus the one named. An edit
 # that would change anything else (a text that reads differently in its new place) is refused.
 
-_BLOCK_PROBE_HEAD = "---\nTDL: 0.1\nName: T\n---\n"
+_BLOCK_PROBE_HEAD = "---\nTDL: 0.2\nName: T\n---\n"
 _PROBE_LINES = _BLOCK_PROBE_HEAD.count("\n")
 _PROBE_BYTES = len(_BLOCK_PROBE_HEAD)
 
@@ -445,7 +445,7 @@ def _shift_slot(origin: Origin) -> Origin:
 
 
 def _slot_probe(slot_text: str) -> str:
-    """`slot_text` without the space around it, if it is exactly one slot (`{{ ... }}`)."""
+    """`slot_text` without the space around it, if it is exactly one slot (`<| ... |>`)."""
     text = slot_text.strip(" \t\r\n")
     try:
         root = loads(_SLOT_PROBE_HEAD + text + "\n}\n").root
@@ -465,7 +465,7 @@ def _slot_probe(slot_text: str) -> str:
         and entries[0].value.end == len(_SLOT_PROBE_HEAD) + len(text)
     )
     if not one:
-        raise ValueError(f"{slot_text!r} is not exactly one slot, written {{{{ like this }}}}")
+        raise ValueError(f"{slot_text!r} is not exactly one slot, written <| like this |>")
     return text
 
 
@@ -513,19 +513,25 @@ def with_condition(node: If, slot_text: str) -> Document:
     return _apply_node(node, spliced, dataclasses.replace(node, condition=slot))
 
 
-_FOR_HEAD = re.compile(r"For[ \t\r]+")
+_NAME = _KEY.pattern
+_FOR_NAMES = re.compile(rf"For[ \t\r]+({_NAME}(?:[ \t\r]*,[ \t\r]*{_NAME})*)")
 
 
-def with_variable(node: For, name: str) -> Document:
+def with_variable(node: For, names: str | Sequence[str]) -> Document:
     text, _ = _node_source(node)
-    if not isinstance(name, str) or _KEY.fullmatch(name) is None:
-        raise ValueError(f"{name!r} is not a valid name: a letter, then letters, digits and _")
-    if name in _RESERVED:
-        raise ValueError(f"{name!r} is reserved and cannot be a loop variable")
-    head = _FOR_HEAD.match(text, node.start)
+    parts = [p.strip(" \t") for p in names.split(",")] if isinstance(names, str) else list(names)
+    for name in parts:
+        if not isinstance(name, str) or _KEY.fullmatch(name) is None:
+            raise ValueError(f"{name!r} is not a valid name: a letter, then letters, digits and _")
+        if name in _RESERVED:
+            raise ValueError(f"{name!r} is reserved and cannot be a loop variable")
+    if len(set(parts)) != len(parts):
+        raise ValueError(f"the loop variables {parts!r} are not all different")
+    head = _FOR_NAMES.match(text, node.start)
     assert head is not None
-    start = head.end()
-    end = start + len(node.variable)
-    assert text[start:end] == node.variable
-    same = dataclasses.replace(node, variable=name)
-    return _apply_node(node, text[:start] + name + text[end:], same)
+    start, end = head.span(1)
+    assert text[start:end].replace(" ", "").replace("\t", "").replace("\r", "") == ",".join(
+        node.variables
+    )
+    same = dataclasses.replace(node, variables=tuple(parts))
+    return _apply_node(node, text[:start] + ", ".join(parts) + text[end:], same)

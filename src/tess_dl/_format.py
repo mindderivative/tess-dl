@@ -118,7 +118,8 @@ class _Renderer:
             return self.if_(entry, depth)
         assert isinstance(entry, For)
         head = (
-            f"{indent}For {entry.variable} In {text[entry.items.start : entry.items.end]}"
+            f"{indent}For {', '.join(entry.variables)} In"
+            f" {text[entry.items.start : entry.items.end]}"
             f" Key {text[entry.key.start : entry.key.end]} {{"
         )
         return self.body(head, entry.body, depth)

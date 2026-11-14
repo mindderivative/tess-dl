@@ -1,6 +1,6 @@
 """The tree a TDL file is read into. Nodes are immutable and keep where they came from."""
 
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 
 from ._source import Source
@@ -77,14 +77,14 @@ class Percent(_Node):
 
 @dataclass(frozen=True, slots=True)
 class Slot(_Node):
-    """`{{ expression }}`: `text` is exactly what lies between the braces, nothing trimmed."""
+    """`<| expression |>`: `text` is exactly what lies between the delimiters, nothing trimmed."""
 
     text: str
     text_start: int = field(default=-1, compare=False, repr=False, kw_only=True)
 
     @property
     def text_origin(self) -> Origin | None:
-        """Where `text` starts: the first character after `{{`. For TEL."""
+        """Where `text` starts: the first character after `<|`. For TEL."""
         if self.source is None:
             return None
         return self.source.origin(self.text_start, self.text_start)
@@ -95,7 +95,7 @@ class Slot(_Node):
 
 @dataclass(frozen=True, slots=True)
 class Template(_Node):
-    """Text with a slot in it, `Battery {{ battery.percent }}%`: strings and slots in order."""
+    """Text with a slot in it, `Battery <| battery.percent |>%`: strings and slots in order."""
 
     parts: tuple[str | Slot, ...]
 
@@ -252,7 +252,7 @@ class Block(_Node):
 
 @dataclass(frozen=True, slots=True)
 class If(_Node):
-    """`If {{ c }} { ... }` and an optional `Else { ... }` (`else_body` is `None` without one)."""
+    """`If <| c |> { ... }` and an optional `Else { ... }` (`else_body` is `None` without one)."""
 
     condition: Slot
     body: tuple[Entry, ...]
@@ -260,9 +260,9 @@ class If(_Node):
     index_path: tuple[int, ...] = field(default=(), compare=False, repr=False, kw_only=True)
 
     def with_condition(self, slot_text: str) -> Document:
-        """A new document with the condition `{{ ... }}` replaced by `slot_text`.
+        """A new document with the condition `<| ... |>` replaced by `slot_text`.
 
-        `slot_text` is the slot as written in a file, braces included (`"{{ battery.low }}"`);
+        `slot_text` is the slot as written in a file, delimiters included (`"<| battery.low |>"`);
         space around it is ignored and the inside is kept byte for byte. Only the bytes of the
         old condition change, and every `index_path` stays valid. An invalid slot is a
         `TDLSyntaxError` with origins inside `slot_text` (file `<slot_text>`); valid TDL that is
@@ -282,9 +282,9 @@ class If(_Node):
 
 @dataclass(frozen=True, slots=True)
 class For(_Node):
-    """`For variable In {{ items }} Key {{ key }} { ... }`."""
+    """`For variables In <| items |> Key <| key |> { ... }`: one name or `i, item`."""
 
-    variable: str
+    variables: tuple[str, ...]
     items: Slot
     key: Slot
     body: tuple[Entry, ...]
@@ -305,21 +305,27 @@ class For(_Node):
 
         return _edit.with_key(self, slot_text)
 
-    def with_variable(self, name: str) -> Document:
-        """A new document with the loop variable renamed to `name`.
+    @property
+    def variable(self) -> str:
+        """The first loop variable: the only one in a loop with a single name."""
+        return self.variables[0]
 
-        Only the declaration changes: a reference to the old name inside a slot (`{{ x.id }}`)
-        is not renamed, because a slot is opaque text to this library. `ValueError` if `name` is
+    def with_variable(self, names: str | Sequence[str]) -> Document:
+        """A new document with the loop variables replaced by `names`: `"item"`, `"i, item"` or a
+        sequence of names, written back as `a, b`.
+
+        Only the declaration changes: a reference to an old name inside a slot (`<| x.id |>`)
+        is not renamed, because a slot is opaque text to this library. `ValueError` if a name is
         not a key (a letter, then letters, digits and `_`), is reserved (`If`, `Else`, `For`,
-        `In`, `Key`) or the node was built in code.
+        `In`, `Key`), is repeated, if there is no name, or the node was built in code.
         """
         from . import _edit
 
-        return _edit.with_variable(self, name)
+        return _edit.with_variable(self, names)
 
     def canonical(self) -> Data:
         return {
-            "for": self.variable,
+            "for": self.variables[0] if len(self.variables) == 1 else list(self.variables),
             "in": self.items.canonical(),
             "key": self.key.canonical(),
             "body": _canonical_entries(self.body),
