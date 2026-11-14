@@ -13,10 +13,10 @@ from test_block_edits import all_nodes
 NAMED = HEAD.replace("Name: T", "Name: R")
 
 BODY = (
-    "Shell {\n  A: 1\n  If {{ c }} {   # warn\n    X { Name: x }\n  } Else {\n"
-    "    Y { Name: y }\n    If {{ b }} { Z { } }\n"
-    "    For i In {{ zs }} Key {{ i }} { V { } }\n  }\n"
-    "  For x In {{ xs }}   Key {{ x.id }} {\n    L { T: {{ x.t }} }\n  }\n}\n"
+    "Shell {\n  A: 1\n  If <| c |> {   # warn\n    X { Name: x }\n  } Else {\n"
+    "    Y { Name: y }\n    If <| b |> { Z { } }\n"
+    "    For i In <| zs |> Key <| i |> { V { } }\n  }\n"
+    "  For x In <| xs |>   Key <| x.id |> {\n    L { T: <| x.t |> }\n  }\n}\n"
 )
 
 
@@ -30,12 +30,12 @@ def doc():
 @pytest.mark.parametrize(
     ("path", "call", "arg", "old", "new"),
     [
-        ((1,), "with_condition", "{{ battery.low }}", "If {{ c }} {", "If {{ battery.low }} {"),
-        ((2,), "with_items", "{{ items }}", "In {{ xs }}", "In {{ items }}"),
-        ((2,), "with_key", "{{ x.uid }}", "Key {{ x.id }}", "Key {{ x.uid }}"),
+        ((1,), "with_condition", "<| battery.low |>", "If <| c |> {", "If <| battery.low |> {"),
+        ((2,), "with_items", "<| items |>", "In <| xs |>", "In <| items |>"),
+        ((2,), "with_key", "<| x.uid |>", "Key <| x.id |>", "Key <| x.uid |>"),
         ((2,), "with_variable", "item", "For x In", "For item In"),
-        ((1, 3), "with_condition", "{{ not b }}", "If {{ b }}", "If {{ not b }}"),
-        ((1, 4), "with_items", "{{ ws }}", "In {{ zs }}", "In {{ ws }}"),
+        ((1, 3), "with_condition", "<| not b |>", "If <| b |>", "If <| not b |>"),
+        ((1, 4), "with_items", "<| ws |>", "In <| zs |>", "In <| ws |>"),
         ((1, 4), "with_variable", "k", "For i In", "For k In"),
     ],
 )
@@ -47,19 +47,19 @@ def test_each_call_replaces_only_the_bytes_it_names(path, call, arg, old, new):
 
 
 def test_spacing_around_the_new_slot_is_dropped_and_the_inside_is_kept_byte_for_byte():
-    out = doc().at((1,)).with_condition("  \t{{   a  and   b }}\n ")
-    assert "If {{   a  and   b }} {   # warn" in tess_dl.dumps(out)
+    out = doc().at((1,)).with_condition("  \t<|   a  and   b |>\n ")
+    assert "If <|   a  and   b |> {   # warn" in tess_dl.dumps(out)
 
 
 def test_a_slot_with_a_closing_pair_in_a_string_is_one_slot():
-    out = doc().at((2,)).with_key("{{ '}}' }}")
-    assert out.at((2,)).key.text == " '}}' "
+    out = doc().at((2,)).with_key("<| '|>' |>")
+    assert out.at((2,)).key.text == " '|>' "
 
 
 def test_the_variable_is_renamed_in_its_declaration_only_and_references_stay():
     out = doc().at((2,)).with_variable("item")
     new = tess_dl.dumps(out)
-    assert "For item In {{ xs }}   Key {{ x.id }}" in new and "{{ x.t }}" in new
+    assert "For item In <| xs |>   Key <| x.id |>" in new and "<| x.t |>" in new
     assert out.at((2,)).variable == "item"
 
 
@@ -70,8 +70,8 @@ def test_with_variable_to_the_same_name_changes_nothing():
 
 def test_the_text_whitespace_and_crlf_of_everything_else_stay():
     text = (NAMED + BODY).replace("\n", "\r\n")
-    out = tess_dl.loads(text).at((2,)).with_items("{{ q }}")
-    assert tess_dl.dumps(out) == text.replace("{{ xs }}", "{{ q }}")
+    out = tess_dl.loads(text).at((2,)).with_items("<| q |>")
+    assert tess_dl.dumps(out) == text.replace("<| xs |>", "<| q |>")
 
 
 # every index path stays valid, and the nodes keep their places
@@ -80,11 +80,11 @@ def test_the_text_whitespace_and_crlf_of_everything_else_stay():
 def test_every_index_path_is_valid_after_every_call():
     before = doc()
     calls = [
-        ((1,), "with_condition", "{{ a }}"),
-        ((2,), "with_items", "{{ a }}"),
-        ((2,), "with_key", "{{ a }}"),
+        ((1,), "with_condition", "<| a |>"),
+        ((2,), "with_items", "<| a |>"),
+        ((2,), "with_key", "<| a |>"),
         ((2,), "with_variable", "item"),
-        ((1, 3), "with_condition", "{{ a }}"),
+        ((1, 3), "with_condition", "<| a |>"),
     ]
     for path, call, arg in calls:
         after = getattr(before.at(path), call)(arg)
@@ -99,9 +99,9 @@ def test_every_index_path_is_valid_after_every_call():
 @pytest.mark.parametrize(
     ("text", "code", "line", "column"),
     [
-        ("{{ a", "tdl-unclosed-slot", 1, 1),
-        ("  {{ }}", "tdl-empty-slot", 1, 1),
-        ("{{ a\n}}", "tdl-unclosed-slot", 1, 1),
+        ("<| a", "tdl-unclosed-slot", 1, 1),
+        ("  <| |>", "tdl-empty-slot", 1, 1),
+        ("<| a\n|>", "tdl-unclosed-slot", 1, 1),
         ("", "tdl-unexpected-text", 1, 1),
         ("#x", "tdl-bare-hash", 1, 1),
         ('"abc', "tdl-unclosed-string", 1, 1),
@@ -121,12 +121,12 @@ def test_invalid_slot_text_is_a_syntax_error_with_origins_inside_the_text(text, 
     [
         "word",
         "12",
-        "{{ a }} b",
-        "b {{ a }}",
-        "{{ a }}, B: 1",
-        "{{ a }} # c",
-        '"{{ a }}"',
-        "[{{ a }}]",
+        "<| a |> b",
+        "b <| a |>",
+        "<| a |>, B: 1",
+        "<| a |> # c",
+        '"<| a |>"',
+        "[<| a |>]",
     ],
 )
 def test_valid_tdl_that_is_not_exactly_one_slot_is_a_value_error(text):
@@ -146,13 +146,13 @@ def test_a_variable_that_is_not_a_key_or_is_reserved_is_a_value_error(name):
 
 def test_a_node_built_in_code_cannot_be_edited():
     slot = tess_dl.Slot(" a ")
-    built_for = tess_dl.For("x", slot, slot, ())
+    built_for = tess_dl.For(("x",), slot, slot, ())
     built_if = tess_dl.If(slot, (), None)
     for call in (
-        lambda: built_for.with_items("{{ b }}"),
-        lambda: built_for.with_key("{{ b }}"),
+        lambda: built_for.with_items("<| b |>"),
+        lambda: built_for.with_key("<| b |>"),
         lambda: built_for.with_variable("y"),
-        lambda: built_if.with_condition("{{ b }}"),
+        lambda: built_if.with_condition("<| b |>"),
     ):
         with pytest.raises(ValueError):
             call()
@@ -161,7 +161,7 @@ def test_a_node_built_in_code_cannot_be_edited():
 def test_an_error_leaves_the_document_unchanged():
     before = doc()
     for call in (
-        lambda: before.at((1,)).with_condition("{{ a"),
+        lambda: before.at((1,)).with_condition("<| a"),
         lambda: before.at((2,)).with_variable("If"),
     ):
         with pytest.raises((tess_dl.TDLSyntaxError, ValueError)):
@@ -198,14 +198,14 @@ def test_block_edits_work_on_a_block_inside_an_else():
 
 def test_an_if_inside_an_else_can_be_edited_and_the_else_is_untouched_around_it():
     d = doc()
-    out = d.at((1, 3)).with_condition("{{ b and c }}")
-    assert tess_dl.dumps(out) == d.text.replace("If {{ b }} { Z", "If {{ b and c }} { Z")
+    out = d.at((1, 3)).with_condition("<| b and c |>")
+    assert tess_dl.dumps(out) == d.text.replace("If <| b |> { Z", "If <| b and c |> { Z")
     assert out.at((1, 2)).name == "y"
 
 
 def test_a_formatted_document_keeps_every_else_edit_path():
     d = tess_dl.format(doc())
-    assert d.at((1, 3)).with_condition("{{ q }}").at((1, 3)).condition.text == " q "
+    assert d.at((1, 3)).with_condition("<| q |>").at((1, 3)).condition.text == " q "
 
 
 # the guarantees over generated files, for every If and For in them
@@ -216,7 +216,7 @@ def nodes_of(document, kind):
 
 
 SLOTS = st.sampled_from(
-    ["{{ a }}", "{{ a.b + 1 }}", "{{ '}}' }}", "  {{   spaced  }}  ", "{{ x ? y : z }}"]
+    ["<| a |>", "<| a.b + 1 |>", "<| '|>' |>", "  <|   spaced  |>  ", "<| x ? y : z |>"]
 )
 
 
@@ -286,7 +286,7 @@ def test_a_slot_edit_followed_by_the_inverse_gives_back_the_original_text(text, 
     assume(ifs)
     node = data.draw(st.sampled_from(ifs))
     original = text[node.condition.start : node.condition.end]
-    edited = node.with_condition("{{ zzz }}")
+    edited = node.with_condition("<| zzz |>")
     back = edited.at(node.index_path).with_condition(original)
     assert tess_dl.dumps(back) == text
 
@@ -298,8 +298,32 @@ def test_the_reread_check_refuses_a_result_that_is_not_the_expected_node():
     from tess_dl import _edit
 
     node = doc().at((2,))
-    wrong = dataclasses.replace(node, variable="somethingelse")
+    wrong = dataclasses.replace(node, variables=("somethingelse",))
     with pytest.raises(ValueError, match="more than the slot"):
         _edit._apply_node(node, doc().text, wrong)  # the text is unchanged: not `wrong`
     with pytest.raises(ValueError):  # a result where the node is no longer at its path
         _edit._apply_node(node, doc().text.replace("For x In", "Spacer { }\n  For x In"), node)
+
+
+def test_a_tuple_loop_reads_its_names_and_with_variable_replaces_them_all():
+    text = tess_dl.loads(
+        "---\nTDL: 0.2\nName: T\n---\n"
+        "S {\n  For i ,item In <| enumerate(xs) |> Key <| item.id |> { V { } }\n}\n"
+    )
+    node = text.at((0,))
+    assert node.variables == ("i", "item") and node.variable == "i"
+    assert node.canonical()["for"] == ["i", "item"]
+    assert "For a, b, c In <| enumerate(xs) |>" in tess_dl.dumps(node.with_variable("a,b , c"))
+    assert "For k In <|" in tess_dl.dumps(node.with_variable(["k"]))
+    assert (
+        tess_dl.dumps(node.with_variable("i, item").at((0,)).with_items("<| q |>")).count("q") == 1
+    )
+
+
+@pytest.mark.parametrize("names", ["", "a,,b", "a, a", ["a", "In"], ["a", "b c"], "a, 1"])
+def test_with_variable_refuses_empty_repeated_reserved_or_bad_names(names):
+    node = tess_dl.loads(
+        "---\nTDL: 0.2\nName: T\n---\nS {\n  For x In <| xs |> Key <| x |> { }\n}\n"
+    ).at((0,))
+    with pytest.raises(ValueError):
+        node.with_variable(names)

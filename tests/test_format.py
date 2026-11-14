@@ -29,24 +29,24 @@ NAMED = HEAD.replace("Name: T", "Name: R")
             "# top\nA {\n  # c\n  X: 1  # t\n}",
         ),
         (
-            "A { If {{ c }} { X { } } Else { Y { } } }",
-            "A {\n  If {{ c }} {\n    X { }\n  } Else {\n    Y { }\n  }\n}",
+            "A { If <| c |> { X { } } Else { Y { } } }",
+            "A {\n  If <| c |> {\n    X { }\n  } Else {\n    Y { }\n  }\n}",
         ),
         (
-            "A {\n If {{ c }} { X { } }\n # why\n Else { Y { } }\n}",
-            "A {\n  If {{ c }} {\n    X { }\n  }\n  # why\n  Else {\n    Y { }\n  }\n}",
+            "A {\n If <| c |> { X { } }\n # why\n Else { Y { } }\n}",
+            "A {\n  If <| c |> {\n    X { }\n  }\n  # why\n  Else {\n    Y { }\n  }\n}",
         ),
-        ("A { If {{ c }} { } }", "A {\n  If {{ c }} { }\n}"),
+        ("A { If <| c |> { } }", "A {\n  If <| c |> { }\n}"),
         (
-            "A { For  x  In  {{ xs }}  Key  {{ x }} { Z { } } }",
-            "A {\n  For x In {{ xs }} Key {{ x }} {\n    Z { }\n  }\n}",
+            "A { For  x  In  <| xs |>  Key  <| x |> { Z { } } }",
+            "A {\n  For x In <| xs |> Key <| x |> {\n    Z { }\n  }\n}",
         ),
         ("A {\n  L: [\n    1,\n    2\n  ]\n}", "A {\n  L: [\n    1,\n    2\n  ]\n}"),
         ("A {\r\n X: 1\r\n}", "A {\r\n  X: 1\r\n}"),
         ("A { # c\n}", "A {\n  # c\n}"),
         (
-            "A { T: Battery {{ b.percent }}%, C: rgba(0 0 0 0.5), S: 'a b' }",
-            "A {\n  T: Battery {{ b.percent }}%\n  C: rgba(0 0 0 0.5)\n  S: 'a b'\n}",
+            "A { T: Battery <| b.percent |>%, C: rgba(0 0 0 0.5), S: 'a b' }",
+            "A {\n  T: Battery <| b.percent |>%\n  C: rgba(0 0 0 0.5)\n  S: 'a b'\n}",
         ),
     ],
 )
@@ -84,17 +84,17 @@ def test_a_formatted_block_goes_into_with_child_unchanged():
 
 
 def test_format_writes_a_whole_file_in_the_canonical_layout():
-    head = "---\nTDL:   0.1   #   v\nName: R   # n\n# own line\n\n\nUID: x\n---\n"
+    head = "---\nTDL:   0.2   #   v\nName: R   # n\n# own line\n\n\nUID: x\n---\n"
     text = (
         "\ufeff"
         + head
-        + "\n\n# top\nShell { Panel { A: 1, B: 2 }\n\tLabel { } , T: Hi {{ b }}\n"
+        + "\n\n# top\nShell { Panel { A: 1, B: 2 }\n\tLabel { } , T: Hi <| b |>\n"
         + "}   # end\n\n\n# last"
     )
     doc = tess_dl.format(tess_dl.loads(text))
     assert doc.text == (
-        "\ufeff---\nTDL: 0.1  #   v\nName: R  # n\n# own line\n\nUID: x\n---\n\n# top\n"
-        "Shell {\n  Panel {\n    A: 1\n    B: 2\n  }\n  Label { }\n  T: Hi {{ b }}\n"
+        "\ufeff---\nTDL: 0.2  #   v\nName: R  # n\n# own line\n\nUID: x\n---\n\n# top\n"
+        "Shell {\n  Panel {\n    A: 1\n    B: 2\n  }\n  Label { }\n  T: Hi <| b |>\n"
         "}  # end\n\n# last\n"
     )
 

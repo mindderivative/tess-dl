@@ -4,7 +4,7 @@
     "at": [
       1
     ],
-    "text": "{{ }}"
+    "text": "<| |>"
   },
   "raises": "tdl-empty-slot"
 }

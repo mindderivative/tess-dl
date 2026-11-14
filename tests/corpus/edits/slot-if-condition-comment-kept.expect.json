@@ -4,6 +4,6 @@
     "at": [
       0
     ],
-    "text": "{{ battery.low or hot }}"
+    "text": "<| battery.low or hot |>"
   }
 }

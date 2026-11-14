@@ -108,7 +108,7 @@ def test_an_index_at_the_trailing_comment_of_a_line_moves_past_the_comment():
         ("A { }\nB { }", "tdl-many-roots", 2),
         ("Bar {", "tdl-unclosed-block", 1),
         ("", "tdl-no-root", 1),
-        ("If {{ c }} { }", "tdl-reserved-name", 1),
+        ("If { }", "tdl-reserved-name", 1),
     ],
 )
 def test_a_text_that_is_not_one_block_is_refused_with_origins_inside_the_text(text, code, line):
@@ -186,12 +186,12 @@ def test_without_property_of_an_absent_key_is_a_key_error():
         ("Shell {\n  A { }\n}\n", 0, "Shell {\n}\n"),
         ("Shell {\n  A { }\n  B { }  # b\n  C { }\n}\n", 1, "Shell {\n  A { }\n  C { }\n}\n"),
         (
-            "Shell {\n  If {{ c }} {\n    A { }\n  } Else {\n    B { }\n  }\n  C { }\n}\n",
+            "Shell {\n  If <| c |> {\n    A { }\n  } Else {\n    B { }\n  }\n  C { }\n}\n",
             0,
             "Shell {\n  C { }\n}\n",
         ),
         (
-            "Shell {\n  For x In {{ xs }} Key {{ x }} { A { } }\n  C { }\n}\n",
+            "Shell {\n  For x In <| xs |> Key <| x |> { A { } }\n  C { }\n}\n",
             0,
             "Shell {\n  C { }\n}\n",
         ),
@@ -284,8 +284,8 @@ def test_a_move_is_refused_for_the_wrong_arguments():
 
 
 BODY = (
-    "Shell {\n  A { Name: a }\n  If {{ c }} {\n    X { }\n    # n\n  } Else {\n    Y { }\n  }\n"
-    "  For i In {{ xs }} Key {{ i }} {\n    Z { }\n  }\n}\n"
+    "Shell {\n  A { Name: a }\n  If <| c |> {\n    X { }\n    # n\n  } Else {\n    Y { }\n  }\n"
+    "  For i In <| xs |> Key <| i |> {\n    Z { }\n  }\n}\n"
 )
 
 
