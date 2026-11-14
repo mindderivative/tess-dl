@@ -8,7 +8,7 @@ import pytest
 import tess_dl
 from layouts import OK_TEXTS
 
-HEAD = "---\nTDL: 0.1\nName: T\n---\n"
+HEAD = "---\nTDL: 0.2\nName: T\n---\n"
 BAD_TEXTS = [HEAD + 'Shell {\n  Width 32\n  Color: #fff\n  Text: "abc\n}\n', "Shell { }", HEAD]
 
 

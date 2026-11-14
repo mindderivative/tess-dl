@@ -30,9 +30,9 @@ One parametrised pytest module walks the folder, so a new case needs no test cod
 
 ## The error codes: one minimal file each (18 language codes and 4 limit/input codes)
 
-`tdl-no-metadata`, `tdl-metadata-unclosed`, `tdl-no-version`, `tdl-no-name`, `tdl-bad-name`, `tdl-no-root`, `tdl-many-roots`, `tdl-unclosed-block`, `tdl-unexpected-close`, `tdl-double-close`, `tdl-unclosed-slot`, `tdl-empty-slot`, `tdl-unclosed-string`, `tdl-bad-escape`, `tdl-duplicate-key`, `tdl-bare-hash`, `tdl-unexpected-text` (G13; one case for each kind of mistake it covers), `tdl-reserved-name`. The "points at" column of the First Slice note is the proposal; fix the exact position when the case is written, and for `tdl-duplicate-key` put the first key in `related`. The four accepted extras (G18): `tdl-unsupported-version`, `tdl-too-large`, `tdl-too-deep`, `tdl-bad-encoding`.
+`tdl-no-metadata`, `tdl-metadata-unclosed`, `tdl-no-version`, `tdl-no-name`, `tdl-bad-name`, `tdl-no-root`, `tdl-many-roots`, `tdl-unclosed-block`, `tdl-unexpected-close`, `tdl-unclosed-slot`, `tdl-empty-slot`, `tdl-unclosed-string`, `tdl-bad-escape`, `tdl-duplicate-key`, `tdl-duplicate-variable`, `tdl-bare-hash`, `tdl-unexpected-text` (G13; one case for each kind of mistake it covers), `tdl-reserved-name`. The "points at" column of the First Slice note is the proposal; fix the exact position when the case is written, and for `tdl-duplicate-key` put the first key in `related`. The four accepted extras (G18): `tdl-unsupported-version`, `tdl-too-large`, `tdl-too-deep`, `tdl-bad-encoding`.
 
-Also one case per language-level line of `TDL Language#Acceptance Criteria` (for example `{{ '}}' }}` ends at the second `}}`; `Color: "#fff"   # note` is a string and a comment) and per `TDL Library API` acceptance criterion; the six-mistake file for `parse`.
+Also one case per language-level line of `TDL Language#Acceptance Criteria` (for example `<| '|>' |>` ends at the second `|>`; `Color: "#fff"   # note` is a string and a comment) and per `TDL Library API` acceptance criterion; the six-mistake file for `parse`.
 
 ## Adding a case: the order
 

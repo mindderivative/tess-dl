@@ -180,7 +180,9 @@ def test_find_follows_name_values_and_reports_what_is_missing():
             doc.find(path)
 
 
-@pytest.mark.parametrize("value", ["", "1 }", "1\nOther: 2", "1 # c", "a, b", "{{", '"abc', "a }"])
+@pytest.mark.parametrize(
+    "value", ["", "1 }", "1\nOther: 2", "1 # c", "a, b", "{{", "<|", '"abc', "a }"]
+)
 def test_a_value_that_is_not_exactly_one_value_is_refused(value):
     doc = tess_dl.loads(HEAD + "Shell { A: 1 }\n")
     with pytest.raises(ValueError):

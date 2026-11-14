@@ -150,7 +150,7 @@ def test_metadata_mistakes_are_all_listed_and_the_body_is_still_read():
     ("text", "codes", "has_document"),
     [
         ("Shell { }", ["tdl-no-metadata"], False),
-        ("---\nTDL: 0.1\nName: T\n", ["tdl-metadata-unclosed"], False),
+        ("---\nTDL: 0.2\nName: T\n", ["tdl-metadata-unclosed"], False),
         (HEAD, ["tdl-no-root"], False),
         (HEAD + "{ }\n", ["tdl-unexpected-text"], False),
         (
@@ -168,13 +168,6 @@ def test_errors_outside_a_block_are_recovered_where_a_tree_can_still_be_built(
     result = tess_dl.parse(text)
     assert [e.code for e in result.errors] == codes
     assert (result.document is not None) == has_document
-
-
-def test_a_double_close_is_reported_once_and_closes_both_blocks():
-    result = tess_dl.parse(HEAD + "Shell {\n  Bar {\n    Width: 1\n  }}\n")
-    assert triples(result.errors) == [("tdl-double-close", 8, 3)]
-    assert result.document is not None
-    assert result.document.canonical()["root"]["entries"][0]["block"] == "Bar"
 
 
 def test_limit_errors_stop_the_file_with_one_error_and_no_tree():

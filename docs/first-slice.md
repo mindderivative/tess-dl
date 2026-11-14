@@ -1,5 +1,7 @@
 # tess-dl First Slice
 
+> **Note (2026-11):** this is the brief for language 0.1. Slots are now written `<| |>`, `tdl-double-close` is gone and `For` takes several names (language 0.2, G38): read [language.md](language.md) for what holds today.
+
 > Moved here from the Tesserae Shell design vault on 2026-11-02. This file is now the source of truth; the vault keeps a short pointer. Names of vault notes and decisions (D1 to D94, the ADR-0014 file layout and so on) refer to that vault and are not links.
 
 > [!NOTE]

@@ -12,7 +12,7 @@ The budget (TDL Library API, "Performance Budget", proposed, to be measured on t
 - Over `max_bytes`: `tdl-too-large`, **before** any parsing work (check the length first). One byte under parses; one byte over raises. Build the input in the test.
 - Over `max_errors`: the list stops at 50 and the last entry says so; recovery stops doing work after the cap.
 - Over `max_depth` (proposed): `tdl-too-deep`. The parser must not use Python recursion proportional to depth that can hit the interpreter limit before 64, and a test with 10,000 nested braces must raise `tdl-too-deep`, never `RecursionError`.
-- Adversarial inputs: many `{{`, a very long line, a long run of `}`, a huge list, deeply nested lists. None may take super-linear time.
+- Adversarial inputs: many `<|`, a very long line, a long run of `}`, a huge list, deeply nested lists. None may take super-linear time.
 
 ## Measure
 

@@ -6,7 +6,7 @@ tree that keeps everything in the file (comments, layout, positions), reports ev
 `file:line:column`, and writes the text back unchanged except for an edit you ask for.
 
 !!! note "Status"
-    Alpha: package 0.1.1, language version 0.1. The API may change before 1.0 (a minor version may
+    Alpha: package 0.1.1 (language 0.1; `main` reads language 0.2, which writes slots `<| |>`, unreleased). The API may change before 1.0 (a minor version may
     break it; see [Versioning](versioning.md)). The import name is `tess_dl`; the 0.1.0 release
     imported as `tdl`.
 
@@ -21,7 +21,7 @@ import tess_dl
 
 text = """\
 ---
-TDL: 0.1
+TDL: 0.2
 Name: Shell_Root
 ---
 Shell {

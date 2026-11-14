@@ -12,7 +12,7 @@ import pytest
 
 import tess_dl
 
-HEAD = "---\nTDL: 0.1\nName: T\n---\n"
+HEAD = "---\nTDL: 0.2\nName: T\n---\n"
 
 
 def read(body: str) -> tess_dl.Block:
@@ -34,25 +34,30 @@ def test_a_bare_hash_is_refused_and_the_hint_says_to_quote_it():
 
 
 def test_a_slot_keeps_its_text_untrimmed_and_the_comma_does_not_end_the_value():
-    (prop,) = read("  Text: {{ max(a, b) }}").entries
+    (prop,) = read("  Text: <| max(a, b) |>").entries
     assert isinstance(prop, tess_dl.Property) and isinstance(prop.value, tess_dl.Slot)
     assert prop.value.text == " max(a, b) "
     origin = prop.value.text_origin
     assert origin is not None and (origin.line, origin.column) == (6, 11)
 
 
-def test_a_slot_ends_at_the_first_closing_pair_outside_quotes():
-    (prop,) = read("  Text: {{ '}}' }}").entries
-    assert isinstance(prop.value, tess_dl.Slot) and prop.value.text == " '}}' "
-    with pytest.raises(tess_dl.TDLSyntaxError) as raised:
-        read("  Text: {{ {'a': {'b': 1}} }}")  # the slot ends at the first }}, the rest is stray
-    assert raised.value.code == "tdl-double-close"
+def test_a_slot_ends_at_the_first_close_outside_quotes_and_holds_braces():
+    (prop,) = read("  Text: <| '|>' |>").entries
+    assert isinstance(prop.value, tess_dl.Slot) and prop.value.text == " '|>' "
+    (prop,) = read("  Text: <| {'a': {'b': 1}} |>").entries
+    assert isinstance(prop.value, tess_dl.Slot) and prop.value.text == " {'a': {'b': 1}} "
 
 
-def test_a_double_close_hint_says_to_write_a_space_between_the_braces():
+def test_two_closing_braces_together_close_two_blocks():
+    doc = tess_dl.loads(HEAD + "Shell {\n  Bar {\n  }}\n")
+    assert doc.root.entries[0].type == "Bar"
+
+
+def test_the_old_slot_form_is_refused_with_a_hint_to_the_new_one():
     with pytest.raises(tess_dl.TDLSyntaxError) as raised:
-        tess_dl.loads(HEAD + "Shell {\n  Bar {\n  }}\n")
-    assert raised.value.code == "tdl-double-close" and "} }" in raised.value.hint
+        read("  Text: {{ a }}")
+    assert raised.value.code == "tdl-unexpected-text" and "<|" in raised.value.message
+    assert (raised.value.origin.line, raised.value.origin.column) == (6, 9)
 
 
 def test_width_without_a_colon_points_at_the_first_character_that_does_not_fit():
@@ -94,6 +99,6 @@ def test_every_public_name_is_in_all_and_every_name_in_all_exists():
 
 
 def test_the_language_and_package_versions_are_separate_strings():
-    assert tess_dl.LANGUAGE_VERSION == "0.1"
+    assert tess_dl.LANGUAGE_VERSION == "0.2"
     assert tess_dl.__version__ != tess_dl.LANGUAGE_VERSION
-    assert tess_dl.loads(HEAD + "Shell { }\n").language_version == "0.1"
+    assert tess_dl.loads(HEAD + "Shell { }\n").language_version == "0.2"

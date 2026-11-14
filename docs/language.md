@@ -1,8 +1,8 @@
-# The Tesserae Data Language (TDL), version 0.1
+# The Tesserae Data Language (TDL), version 0.2
 
 TDL is a structure-only data language: blocks, properties and values. It does not know what a bar, a monitor or a colour is. The program that reads a file (the Tesserae Shell, Tesserae UI) decides which blocks and keys it accepts and what a value means. Expressions belong to TEL: TDL only marks where one starts and ends.
 
-This page is the reference for what the `tess_dl` library reads. Each section shows an example first, then the rule. Where TDL behaves differently from CSS, QML or Flutter, a note says so. The reasons for the choices are in [decisions.md](decisions.md) (rows G1 to G37).
+This page is the reference for what the `tess_dl` library reads. Each section shows an example first, then the rule. Where TDL behaves differently from CSS, QML or Flutter, a note says so. The reasons for the choices are in [decisions.md](decisions.md) (rows G1 to G38).
 
 Status: draft for the first slice. Every example here becomes a case in `tests/corpus/`.
 
@@ -12,7 +12,7 @@ A file is a metadata block, then exactly one root block.
 
 ```
 ---
-TDL: 0.1
+TDL: 0.2
 Name: Shell_Root
 ---
 
@@ -25,7 +25,7 @@ Shell {
       Name: Top_Bar
       Edge: TOP
       Height: 32
-      Label { Text: Battery {{ battery.percent }}% }
+      Label { Text: Battery <| battery.percent |>% }
     }
   }
 }
@@ -76,7 +76,7 @@ TDL never changes case. The shell's schema decides which spellings it accepts.
 
 ```
 ---
-TDL: 0.1          # the language version
+TDL: 0.2          # the language version
 Name: Shell_Root
 Shell: 0.1
 UID: 0192d3c4-7a1e-7c2f-9b1a-3f5e2d8a6c10
@@ -106,7 +106,7 @@ Border {
 - Entries in a block (properties, blocks, `If`, `For`, comments) are separated by a newline or a `,`. A trailing `,` is allowed and never required.
 - The same block word may appear many times in one block. A property key may appear once (`tdl-duplicate-key`; the error names both places).
 - `Children` and `Import` are ordinary words: `Children` is a block, `Import: File.tdl` is a property. Their meaning is the shell's. (G9)
-- Nested blocks close with a space or a newline between the braces: `} }`, never `}}`. An adjacent `}}` outside a slot or a string is `tdl-double-close`, whether or not two blocks are open. A block directly inside a block opens as `{ {` for the same reason: `{{` always opens a slot.
+- Blocks close with `}`, and a `}` always closes exactly one block, so `} }` and `|>` mean the same. Outside strings and slots, `{` and `}` have no other meaning.
 - A `{` with no `}` before the end of the file is `tdl-unclosed-block`; a `}` with nothing open is `tdl-unexpected-close`.
 - Nesting is limited to 64 levels (the root block is level 1; blocks, `If`/`For` bodies, lists and calls each count). (G11, G27)
 
@@ -130,8 +130,8 @@ After the metadata there is exactly one block, the **root block**. Its head word
 | Percent | `50%` | A whole number and `%` |
 | Call | `rgba(0 0 0 0.5)` | A name, then values in parentheses |
 | List | `[a, b, c]` | |
-| Slot | `{{ expression }}` | TEL's |
-| Template | `Battery {{ battery.percent }}%` | Text with a slot in it |
+| Slot | `<| expression |>` | TEL's |
+| Template | `Battery <| battery.percent |>%` | Text with a slot in it |
 
 TDL reads the **form** of a value, not its meaning. `true`, `false`, `null` and `TOP` are words; the shell's schema turns them into a boolean, a null or an enum. A colour, a length and four-sided values are the shell's too.
 
@@ -153,7 +153,7 @@ Path: 'C:\\Users'
 Mark: "\u00e9"
 ```
 
-`"…"` and `'…'` are the same. A string must close on the line it opens (`tdl-unclosed-string`). A `{{` inside quotes is plain text, not a slot. (G15) These escapes are valid: `\\` `\"` `\'` `\n` `\t` and `\u` followed by four hex digits. Any other `\x` is `tdl-bad-escape`. (G5) The value of the string has the escapes resolved; its text is kept as written.
+`"…"` and `'…'` are the same. A string must close on the line it opens (`tdl-unclosed-string`). A `<|` inside quotes is plain text, not a slot. (G15) These escapes are valid: `\\` `\"` `\'` `\n` `\t` and `\u` followed by four hex digits. Any other `\x` is `tdl-bad-escape`. (G5) The value of the string has the escapes resolved; its text is kept as written.
 
 A colour with `#` needs quotes: `Color: "#ffffff"`. `Color: #fff` is `tdl-bare-hash` (hint: write `"#ffffff"`).
 
@@ -193,36 +193,39 @@ A list holds values (not blocks). Items are separated by `,` or a newline, a tra
 
 ### Slots
 
+> TDL 0.1 wrote slots `{{ }}`; 0.2 replaces that with `<| |>` (G38). `tools/migrate_slots.py` converts old files.
+
 ```
-Text: {{ max(a, b) }}
-Color: {{ hovered ? "#1e1e2e" : "#313244" }}
-Text: {{ '}}' }}
+Text: <| max(a, b) |>
+Color: <| hovered ? "#1e1e2e" : "#313244" |>
+Text: <| {'a': {'b': 1|> |>
+Text: <| '|>' |>
 ```
 
-A slot starts at `{{` and ends at the first `}}` that is not inside a quoted string (`'…'` or `"…"`, with `\` escapes). Everything in between is opaque to TDL: a `,`, `#`, `:` or a single brace in a slot does not end a value or start a comment. The slot's **text** is what lies between the braces, nothing trimmed (` max(a, b) `), and its **text origin** is the position of the first character after `{{`; both are for TEL.
+A slot starts at `<|` and ends at the first `|>` that is not inside a quoted string (`'…'` or `"…"`, with `\` escapes). Everything in between is opaque to TDL: a `,`, `#`, `:` or a single brace in a slot does not end a value or start a comment. The slot's **text** is what lies between the braces, nothing trimmed (` max(a, b) `), and its **text origin** is the position of the first character after `<|`; both are for TEL.
 
-- A slot is on one line. A line end before `}}` is `tdl-unclosed-slot`. (G7)
-- `{{ }}` with nothing but whitespace is `tdl-empty-slot`.
-- A slot ends at its first `}}`: in `{{ {'a': {'b': 1}} }}` the slot is ` {'a': {'b': 1` and the trailing `}}` is `tdl-double-close`. (G19)
+- A slot is on one line. A line end before `|>` is `tdl-unclosed-slot`. (G7)
+- `<| |>` with nothing but whitespace is `tdl-empty-slot`.
+- A slot ends at its first `|>`: braces, `|>` and `<|` inside it are ordinary text, so `<| {'a': {'b': 1|> |>` is one slot. A `|>` inside a quoted string does not end it: `<| '|>' |>`. (G38)
 
-A value that is exactly one slot is a slot. A value that has text around a slot is a **template**: `Battery {{ battery.percent }}%` is the parts `Battery `, the slot, and `%`, in order.
+A value that is exactly one slot is a slot. A value that has text around a slot is a **template**: `Battery <| battery.percent |>%` is the parts `Battery `, the slot, and `%`, in order.
 
 ## If, Else and For
 
 ```
-If {{ battery.low }} {
+If <| battery.low |> {
   Icon { Name: Warning }
 } Else {
   Icon { Name: Ok }
 }
 
-For item In {{ items }} Key {{ item.id }} {
-  Label { Text: {{ item.title }} }
+For item In <| items |> Key <| item.id |> {
+  Label { Text: <| item.title |> }
 }
 ```
 
-- `If {{ condition }} { … }` may be followed by `Else { … }`. There is no `Else If`: nest an `If` inside the `Else`. `Else` follows the closing brace of the `If` body, on the same line or after newlines and comments. (G17) An `Else` with no `If` is `tdl-unexpected-text`.
-- `For variable In {{ items }} Key {{ key }} { … }`. The variable follows the names rule. `In` and `Key` are required (`Key` gives each entry its identity); leaving either out is `tdl-unexpected-text`.
+- `If <| condition |> { … }` may be followed by `Else { … }`. There is no `Else If`: nest an `If` inside the `Else`. `Else` follows the closing brace of the `If` body, on the same line or after newlines and comments. (G17) An `Else` with no `If` is `tdl-unexpected-text`.
+- `For names In <| items |> Key <| key |> { … }`. `names` is one name or several separated by commas (`For i, item In <| enumerate(items) |> Key <| item.id |> { … }`). Each name follows the names rule, none may be reserved (`tdl-reserved-name`) and none may repeat (`tdl-duplicate-variable`). TDL keeps the names and does not check what the loop binds to them: that is the runtime's. `In` and `Key` are required (`Key` gives each entry its identity); leaving either out is `tdl-unexpected-text`. (G38)
 - Their bodies hold entries like any block.
 - `If`, `Else`, `For`, `In` and `Key` are special only where a key or entry is expected (they are fine inside an unquoted word or a string).
 
@@ -241,9 +244,9 @@ Every error has a stable `code`, a one-sentence message in plain words, a hint t
 | `tdl-many-roots` | More than one root block | Keep one root block | The head word of the second |
 | `tdl-unclosed-block` | A `{` has no `}` before the end of the file | Add the missing `}` | The opening `{` |
 | `tdl-unexpected-close` | A `}` with no open block | Remove the extra `}` | That `}` |
-| `tdl-double-close` | A `}}` outside a slot or string | Write `} }` | The first `}` of the `}}` |
-| `tdl-unclosed-slot` | A `{{` with no `}}` on the same line | Close the slot on the same line | The `{{` |
-| `tdl-empty-slot` | A `{{ }}` with nothing in it | Put an expression in the slot | The `{{` |
+| `tdl-duplicate-variable` | A loop variable named twice in one `For` | Use a different name | The second use |
+| `tdl-unclosed-slot` | A `<|` with no `|>` on the same line | Close the slot on the same line | The `<|` |
+| `tdl-empty-slot` | A `<| |>` with nothing in it | Put an expression in the slot | The `<|` |
 | `tdl-unclosed-string` | A quote with no closing quote on the line | Close the string | The opening quote |
 | `tdl-bad-escape` | A `\` followed by something that is not an escape | Use a valid escape or write `\\` | The backslash |
 | `tdl-duplicate-key` | A property key twice in one block (or metadata) | Remove one; the message names both places | The second key; the first is a related origin |
@@ -253,7 +256,7 @@ Every error has a stable `code`, a one-sentence message in plain words, a hint t
 
 Those are the 18 language errors. Checking the root block against the file name is not TDL's job: the program that reads the file does that.
 
-Where it points, in detail (G20, G28): `tdl-no-root` at the first character after the closing `---` line, including its line ending. `tdl-unexpected-text` at: the first non-whitespace character after the `:` for a missing value (a `#` that starts a comment, or the line end); the first character after the key and its whitespace for a missing `:` or `{`; the `Else` for an `Else` with no `If`; the character where the missing part of an `If` or `For` should start (for a `For` with no `Key`, the `{` that opens the body; with no `In`, the first `{{` after the variable; with no `{` at all, the line end); the line end for an unclosed `(`; for an unclosed `[`, the `}` or the end of the file that reaches it; the `{` for a stray `{` in an unquoted value or a call argument; the first non-whitespace character after a string or a call; the `,` or the `#` inside a call; otherwise the first character that cannot start the line, root block, entry or value. `tdl-bad-encoding` is placed by counting the valid UTF-8 prefix before the first bad byte (G21). A `TDL:` value that does not start with a number is `tdl-unsupported-version` too.
+Where it points, in detail (G20, G28): `tdl-no-root` at the first character after the closing `---` line, including its line ending. `tdl-unexpected-text` at: the first non-whitespace character after the `:` for a missing value (a `#` that starts a comment, or the line end); the first character after the key and its whitespace for a missing `:` or `{`; the `Else` for an `Else` with no `If`; the character where the missing part of an `If` or `For` should start (for a `For` with no `Key`, the `{` that opens the body; with no `In`, the first `<|` after the variable; with no `{` at all, the line end); the line end for an unclosed `(`; for an unclosed `[`, the `}` or the end of the file that reaches it; the `{` for a stray `{` in an unquoted value or a call argument; the first non-whitespace character after a string or a call; the `,` or the `#` inside a call; otherwise the first character that cannot start the line, root block, entry or value. `tdl-bad-encoding` is placed by counting the valid UTF-8 prefix before the first bad byte (G21). A `TDL:` value that does not start with a number is `tdl-unsupported-version` too.
 
 Four more codes report what the library will not read at all. Each stops the file with one error:
 
@@ -268,7 +271,6 @@ The error list stops at 50 errors; the last entry says so (`The list stops at 50
 
 - A bad entry is recorded and skipped to the end of its line, or to the `}` that closes its block; braces opened on the bad line itself are skipped with it.
 - A bad metadata line is recorded and the next line is read; each missing or wrong required key (`TDL`, `Name`) is reported and reading goes on.
-- `}}` is reported once and closes up to two open blocks; the second `}` is not reported again.
 - A `{` that is never closed is reported at each unclosed `{` when the file ends.
 - A second root block is reported and then read, so its inside is not reported twice; text after the root block is reported line by line.
 - `tdl-too-large`, `tdl-too-deep` and `tdl-bad-encoding` stop the file with that one error.
@@ -281,4 +283,4 @@ The error list stops at 50 errors; the last entry says so (`The list stops at 50
 | CSS | `#fff` unquoted is an error; no `/* */`; a value ends at the line end or a `,`, not at `;` |
 | JSON, YAML | Keys are not quoted; `:` is required; `,` or a newline separates entries; there is no indentation rule |
 | QML, Flutter | A block's head word is its type, and a name is a `Name:` property |
-| Any template language | `{{ }}` marks a slot on one line; TDL does not run it |
+| Any template language | `<| |>` marks a slot on one line; TDL does not run it |

@@ -4,6 +4,6 @@
     "at": [
       1
     ],
-    "text": "  {{ items.visible }}  "
+    "text": "  <| items.visible |>  "
   }
 }

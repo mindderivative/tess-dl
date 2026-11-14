@@ -14,20 +14,20 @@ OK_TEXTS = [
 # Characters that steer the reader: braces, quotes, hashes, slots, newlines and names.
 SOUP = st.text(alphabet="{}[]()\"'#:,\\ \t\r\nabAB09-%.=\u00e9", max_size=200)
 
-HEAD = "---\nTDL: 0.1\nName: T\n---\n"
+HEAD = "---\nTDL: 0.2\nName: T\n---\n"
 ENTRIES = [
     "Width: 32",
     "Text: Hello world",
     "Color: rgba(0 0 0 0.5)",
     'Mark: "a \\u00e9 b"',
     "Items: [1, 2, 3]",
-    "Text: Battery {{ battery.percent }}%",
+    "Text: Battery <| battery.percent |>%",
     "Spacer { }",
     "Panel { Name: p1, Width: 200 }",
-    "If {{ c }} { Label { } }",
-    "For x In {{ xs }} Key {{ x }} { Label { } }",
-    "If {{ c }} { Label { } } Else { Bar { Name: b }, For i In {{ ys }} Key {{ i }} { Z { } } }",
-    "If {{ d }} { X { } } Else { If {{ e }} { Y { } } Else { W: 1 } }",
+    "If <| c |> { Label { } }",
+    "For x In <| xs |> Key <| x |> { Label { } }",
+    "If <| c |> { Label { } } Else { Bar { Name: b }, For i In <| ys |> Key <| i |> { Z { } } }",
+    "If <| d |> { X { } } Else { If <| e |> { Y { } } Else { W: 1 } }",
     "# a comment",
     "",
     "Name: caf\u00e9_\U0001f600",

@@ -28,12 +28,12 @@ CODES = {
     "tdl-many-roots",
     "tdl-unclosed-block",
     "tdl-unexpected-close",
-    "tdl-double-close",
     "tdl-unclosed-slot",
     "tdl-empty-slot",
     "tdl-unclosed-string",
     "tdl-bad-escape",
     "tdl-duplicate-key",
+    "tdl-duplicate-variable",
     "tdl-bare-hash",
     "tdl-unexpected-text",
     "tdl-reserved-name",
@@ -155,7 +155,8 @@ def check_entry(node):
         assert set(node["if"]) == {"slot"}
         check_bodies(node["body"], node["else"] or [])
     else:
-        assert isinstance(node["for"], str)
+        names = node["for"]
+        assert isinstance(names, str) or (isinstance(names, list) and len(names) > 1)
         assert set(node["in"]) == {"slot"} and set(node["key"]) == {"slot"}
         check_bodies(node["body"])
 

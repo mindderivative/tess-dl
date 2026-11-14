@@ -45,7 +45,7 @@ jobs:
           new = {m.split('.')[0] for m in set(sys.modules) - before}
           assert not new - set(sys.stdlib_module_names) - {'tess_dl'}, new
           print(tess_dl.__version__, tess_dl.LANGUAGE_VERSION)
-          text = '---\nTDL: 0.1\nName: T\n---\nShell { }\n'
+          text = '---\nTDL: 0.2\nName: T\n---\nShell { }\n'
           assert tess_dl.dumps(tess_dl.loads(text)) == text
           "
 

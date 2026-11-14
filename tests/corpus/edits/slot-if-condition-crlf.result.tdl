@@ -1,9 +1,9 @@
 ---
-TDL: 0.1
+TDL: 0.2
 Name: Shell_Root
 ---
 Shell {
-  If {{ a }} {   # warn
+  If <| a |> {   # warn
     Icon { }
   }
   B { }

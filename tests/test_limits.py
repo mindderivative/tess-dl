@@ -2,7 +2,7 @@
 
 import pytest
 
-META = "---\nTDL: 0.1\nName: T\n---\n"
+META = "---\nTDL: 0.2\nName: T\n---\n"
 MAX_BYTES = 1_048_576
 MAX_DEPTH = 64
 
@@ -105,7 +105,7 @@ def test_a_file_over_the_limit_is_refused_before_anything_is_read():
 
 def realistic(size):
     block = (
-        "  Bar {\n    Name: Bar\n    Text: Battery {{ b.percent }}%\n    Items: [1, 2, 3]\n  }\n"
+        "  Bar {\n    Name: Bar\n    Text: Battery <| b.percent |>%\n    Items: [1, 2, 3]\n  }\n"
     )
     body = block * ((size - len(META) - 10) // len(block))
     return META + "Shell {\n" + body + "}\n"

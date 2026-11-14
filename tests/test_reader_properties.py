@@ -30,7 +30,7 @@ def read_or_syntax_error(text: str) -> tess_dl.Document | None:
 @settings(max_examples=300, deadline=None)
 @given(SOUP)
 def test_arbitrary_text_after_metadata_never_fails_any_other_way(body):
-    read_or_syntax_error("---\nTDL: 0.1\nName: T\n---\n" + body)
+    read_or_syntax_error("---\nTDL: 0.2\nName: T\n---\n" + body)
 
 
 @settings(max_examples=300, deadline=None)
@@ -62,7 +62,7 @@ def test_nesting_stops_at_the_limit_and_never_overflows_the_stack(levels, kind):
 
 def check_nesting(levels, kind):
     body = BUILDERS[kind](levels)
-    text = "---\nTDL: 0.1\nName: T\n---\nShell {\n" + body
+    text = "---\nTDL: 0.2\nName: T\n---\nShell {\n" + body
     code = None
     try:
         tess_dl.loads(text)
@@ -90,7 +90,7 @@ def check_error_shape(text: str, error: tess_dl.TDLSyntaxError) -> None:
 @settings(max_examples=300, deadline=None)
 @given(SOUP)
 def test_every_error_has_a_real_position_and_plain_words(body):
-    text = "---\nTDL: 0.1\nName: T\n---\n" + body
+    text = "---\nTDL: 0.2\nName: T\n---\n" + body
     try:
         tess_dl.loads(text)
     except tess_dl.TDLSyntaxError as error:
