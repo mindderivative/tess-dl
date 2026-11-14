@@ -140,6 +140,10 @@ def apply(doc, edit):
         return doc.find(edit["block"]).without_child(edit["index"])
     if call == "move_child":
         return doc.find(edit["block"]).move_child(edit["index"], edit["to"])
+    if call in {"with_items", "with_key", "with_condition"}:
+        return getattr(doc.at(tuple(edit["at"])), call)(edit["text"])
+    if call == "with_variable":
+        return doc.at(tuple(edit["at"])).with_variable(edit["name"])
     raise AssertionError(f"unknown edit call {call}")
 
 

@@ -5,6 +5,7 @@ make the file invalid raises `TDLError` and the original `Document` is untouched
 where a new line goes are G24 and G32 in docs/decisions.md.
 """
 
+import dataclasses
 import re
 import textwrap
 from collections.abc import Sequence
@@ -12,7 +13,7 @@ from collections.abc import Sequence
 from ._parser import _KEY, _RESERVED, loads
 from .errors import TDLSyntaxError
 from .origin import Origin
-from .tree import Block, Comment, Document, Entry, For, If, Property
+from .tree import Block, Comment, Document, Entry, For, If, Property, Slot
 
 VERSION_KEYS = frozenset({"TDL", "Shell"})
 _UNSAFE_WORD = re.compile(r"[\r\n]|[ \t]#")
@@ -414,3 +415,117 @@ def move_child(block: Block, child: Block | If | For | int, to: int) -> Document
     else:
         raise ValueError("That entry cannot be moved there")
     return _apply(block, new_text, rest[:to] + moved + rest[to:])
+
+
+# Slot and variable edits (T-040): For.with_items, For.with_key, If.with_condition,
+# For.with_variable. Each replaces only the bytes of the slot or the variable it names.
+
+_SLOT_PROBE_HEAD = _BLOCK_PROBE_HEAD + "S {\nK: "
+_SLOT_LINE = _PROBE_LINES + 2  # the probe line that holds the slot text
+_SLOT_COLUMN = len("K: ")  # what stands before the slot text on that line
+
+
+def _shift_slot(origin: Origin) -> Origin:
+    """An origin in the slot probe as an origin in the slot text."""
+
+    def line(n: int) -> int:
+        return max(1, n - _SLOT_LINE + 1)
+
+    def column(n: int, at: int) -> int:
+        return max(1, n - _SLOT_COLUMN) if at == _SLOT_LINE else n
+
+    return Origin(
+        "<slot_text>",
+        line(origin.line),
+        column(origin.column, origin.line),
+        line(origin.end_line),
+        column(origin.end_column, origin.end_line),
+        max(0, origin.offset - len(_SLOT_PROBE_HEAD)),
+    )
+
+
+def _slot_probe(slot_text: str) -> str:
+    """`slot_text` without the space around it, if it is exactly one slot (`{{ ... }}`)."""
+    text = slot_text.strip(" \t\r\n")
+    try:
+        root = loads(_SLOT_PROBE_HEAD + text + "\n}\n").root
+    except TDLSyntaxError as error:
+        raise TDLSyntaxError(
+            error.code,
+            error.message,
+            error.hint,
+            _shift_slot(error.origin),
+            tuple(_shift_slot(o) for o in error.related),
+        ) from None
+    entries = root.entries
+    one = (
+        len(entries) == 1
+        and isinstance(entries[0], Property)
+        and isinstance(entries[0].value, Slot)
+        and entries[0].value.end == len(_SLOT_PROBE_HEAD) + len(text)
+    )
+    if not one:
+        raise ValueError(f"{slot_text!r} is not exactly one slot, written {{{{ like this }}}}")
+    return text
+
+
+def _node_source(node: If | For) -> tuple[str, str | None]:
+    source = node.source
+    if source is None:
+        raise ValueError("A node built in code has no text to edit")
+    return source.text, source.path
+
+
+def _apply_node[N: If | For](node: N, new_text: str, same: N) -> Document:
+    """Reread `new_text`: the node at the same index path must be `same`, the node as it should
+    now read, in full (its body and everything else it holds), or the edit is refused."""
+    source = node.source
+    assert source is not None
+    doc = loads(new_text, path=source.path)
+    try:
+        found = doc.at(node.index_path)
+    except IndexError, ValueError:
+        found = None
+    if type(found) is not type(node) or found != same:
+        raise ValueError("This edit would change more than the slot it names, so it was refused")
+    return doc
+
+
+def _splice_slot(node: For | If, slot: Slot, slot_text: str) -> tuple[str, Slot]:
+    """The text of `node`'s file with `slot` replaced by `slot_text`, and the slot as it reads."""
+    text, _ = _node_source(node)
+    new = _slot_probe(slot_text)
+    return text[: slot.start] + new + text[slot.end :], dataclasses.replace(slot, text=new[2:-2])
+
+
+def with_items(node: For, slot_text: str) -> Document:
+    spliced, slot = _splice_slot(node, node.items, slot_text)
+    return _apply_node(node, spliced, dataclasses.replace(node, items=slot))
+
+
+def with_key(node: For, slot_text: str) -> Document:
+    spliced, slot = _splice_slot(node, node.key, slot_text)
+    return _apply_node(node, spliced, dataclasses.replace(node, key=slot))
+
+
+def with_condition(node: If, slot_text: str) -> Document:
+    spliced, slot = _splice_slot(node, node.condition, slot_text)
+    return _apply_node(node, spliced, dataclasses.replace(node, condition=slot))
+
+
+_FOR_HEAD = re.compile(r"For[ \t\r]+")
+
+
+def with_variable(node: For, name: str) -> Document:
+    text, _ = _node_source(node)
+    if not isinstance(name, str) or _KEY.fullmatch(name) is None:
+        raise ValueError(f"{name!r} is not a valid name: a letter, then letters, digits and _")
+    if name in _RESERVED:
+        raise ValueError(f"{name!r} is reserved and cannot be a loop variable")
+    head = _FOR_HEAD.match(text, node.start)
+    assert head is not None
+    start = head.end()
+    end = start + len(node.variable)
+    assert text[start:end] == node.variable
+    same = dataclasses.replace(node, variable=name)
+    return _apply_node(node, text[:start] + name + text[end:], same)

@@ -1,0 +1,10 @@
+{
+  "edit": {
+    "call": "with_items",
+    "at": [
+      1
+    ],
+    "text": "{{ }}"
+  },
+  "raises": "tdl-empty-slot"
+}

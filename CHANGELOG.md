@@ -16,6 +16,11 @@ here (`docs/versioning.md`).
   that survives edits, for blocks without a `Name:`.
 - 12 new edit cases in the corpus (`without_property`, `with_child`, `without_child`, `move_child`;
   G35).
+- `If.with_condition(slot_text)`, `For.with_items(slot_text)`, `For.with_key(slot_text)` and
+  `For.with_variable(name)`: replace a slot or the loop variable in place (G37). The slot is given with
+  its braces; errors in it carry origins inside the text. `with_variable` does not rename references
+  in slots. Only the named bytes change and every `index_path` stays valid. 9 new corpus edit cases;
+  edits inside an `Else` are tested.
 - The formatter: `format_block(text)` (one block, as a string) and `format(document)` (a new
   `Document`), writing the canonical layout of `docs/api.md` (G36): two spaces a level, one entry per
   line, comments and blank lines kept, values written as they were. Idempotent; the result is
