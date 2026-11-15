@@ -59,3 +59,19 @@ jobs:
         with:
           enable-cache: false
       - run: uv run --python 3.14 --only-group docs mkdocs build --strict
+
+  # The one check the repository ruleset requires: it fails when any job above failed or was
+  # cancelled, and passes when all succeeded.
+  ci-result:
+    name: CI result
+    if: always()
+    needs: [test, lint, package, docs]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for r in $RESULTS; do [ "$r" = "success" ] || { echo "a job did not succeed: $r"; exit 1; }; done
