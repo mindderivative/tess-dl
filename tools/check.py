@@ -4,7 +4,7 @@
     python3 tools/check.py [--no-tests]
 
 Uses the tools next to the interpreter that runs it, so run it with the project's venv python
-(`~/Projects/pyDev/pyEnvs/tess-el/bin/python tools/check.py`). Stops at the first failure.
+(`~/Projects/pyDev/pyEnvs/tess-dl/bin/python tools/check.py`). Stops at the first failure.
 """
 
 import subprocess
